@@ -1,0 +1,10 @@
+# Binary files.
+__pycache__/
+
+# Environment variables.
+.env
+venv/
+
+# Test files.
+tests/
+
