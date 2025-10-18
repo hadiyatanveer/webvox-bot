@@ -9,3 +9,7 @@ config.yaml
 # Test files.
 tests/
 
+# Node modules.
+node_modules/
+pakage-lock.json
+
