@@ -4,6 +4,7 @@ __pycache__/
 # Environment variables.
 .env
 venv/
+config.yaml
 
 # Test files.
 tests/
