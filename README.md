@@ -7,19 +7,18 @@ webvox-bot/
 ├── frontend/
 |
 ├── backend/
-│ ├── main.py
 │ ├── routes/
 │ ├── models/
 │ └── schemas/
 │
 ├── services/                  
-│ ├── 1_voice_processing/ 
-│ ├── 2_voicebot/ 
-│ ├── 3_intent_detection/ 
-│ ├── 4_information_retrieval/ 
-│ ├── 5_action_execution/ 
-│ ├── 6_session_security/ 
-│ ├── 7_learning_adaptation/ 
+│ ├── voice_processing/ 
+│ ├── voicebot/ 
+│ ├── intent_detection/ 
+│ ├── information_retrieval/ 
+│ ├── action_execution/ 
+│ ├── session_security/ 
+│ ├── learning_adaptation/ 
 │
 ├── tests/
 |
@@ -28,4 +27,30 @@ webvox-bot/
 └── Makefile
 └── .gitignore
 └── .env.example
+└── main.py
+```
+
+## ⚙️ Setup Instructions
+
+Follow these simple steps to run the project locally.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/webvox-bot.git
+cd webvox-bot
+```
+### 2. Run the frontend
+
+```bash
+cd frontend
+npm install
+npm install react-scripts@5.0.1
+npm start
+```
+
+### 2. Run the backend
+
+```bash
+python3 main.py
 ```
