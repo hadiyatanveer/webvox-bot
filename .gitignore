@@ -13,3 +13,6 @@ tests/
 node_modules/
 pakage-lock.json
 
+# Random files
+notes.txt
+

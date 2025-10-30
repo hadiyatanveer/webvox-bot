@@ -52,5 +52,5 @@ npm start
 ### 2. Run the backend
 
 ```bash
-python3 main.py
+python3 -m backend.main
 ```
