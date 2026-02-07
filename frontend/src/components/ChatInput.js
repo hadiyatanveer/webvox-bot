@@ -1,49 +1,35 @@
-// src/components/ChatInput.js - TEXTBOX PREVIEW ONLY, MANUAL STOP
-import React, { useState, useRef, useEffect } from 'react';
+// src/components/ChatInput.js
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import VoiceInput from './VoiceInput';
 import './ChatInput.css';
 
-const ChatInput = ({ onSendMessage, isLoading }) => {
+const ChatInput = ({ onSendMessage, isLoading, language, onLanguageChange }) => {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (message.trim() && !isLoading && !isListening) {
-      onSendMessage(message.trim(), 'text');
+      await onSendMessage(message.trim(), 'text');
       setMessage('');
     }
-  };
+  }, [message, isLoading, isListening, onSendMessage]);
 
-  const handleVoiceInput = (transcribedText, listening, isComplete = false) => {
+  const handleVoiceInput = useCallback(async (text, listening, isComplete = false) => {
     setIsListening(listening);
-    
-    if (isComplete && transcribedText.trim()) {
-      // Voice input completed - send message
-      onSendMessage(transcribedText.trim(), 'voice');
+    if (isComplete && text.trim()) {
+      await onSendMessage(text.trim(), 'voice');
       setMessage('');
-    } else if (listening || transcribedText) {
-      // Show live preview in textbox
-      setMessage(transcribedText || '');
+    } else if (listening || text) {
+      setMessage(text || '');
     }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
+  }, [onSendMessage]);
 
   const handleTextChange = (e) => {
-    // Only allow manual text editing when not listening
-    if (!isListening) {
-      setMessage(e.target.value);
-    }
+     if (!isListening) setMessage(e.target.value);
   };
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -55,33 +41,39 @@ const ChatInput = ({ onSendMessage, isLoading }) => {
     <div className="chat-input-container">
       <form onSubmit={handleSubmit} className="chat-input-form">
         <div className="input-wrapper">
+          
+          <select 
+            className="language-select"
+            value={language}
+            onChange={(e) => onLanguageChange(e.target.value)}
+            disabled={isListening || isLoading}
+          >
+            <option value="en-US">🇺🇸 EN</option>
+            <option value="ur-IN">🇵🇰 UR</option>
+            <option value="ar-SA">🇸🇦 AR</option>
+          </select>
+
           <textarea
             ref={textareaRef}
             value={message}
             onChange={handleTextChange}
-            onKeyPress={handleKeyPress}
-            placeholder={isListening ? "Listening... (click 🛑 to stop)" : "Type a message or use voice input..."}
+            placeholder={isListening ? "Listening..." : "Type or speak..."}
             disabled={isLoading}
             className={`message-input ${isListening ? 'listening-mode' : ''}`}
             rows={1}
-            style={{
-              color: isListening ? '#059669' : 'inherit',
-              fontStyle: isListening ? 'italic' : 'normal',
-              backgroundColor: isListening ? '#ecfdf5' : 'inherit'
-            }}
+            dir={language === 'ar-SA' || language === 'ur' ? 'rtl' : 'ltr'}
           />
           
           <div className="input-actions">
             <VoiceInput 
               onVoiceInput={handleVoiceInput}
               disabled={isLoading}
+              language={language}
             />
-            
             <button
               type="submit"
               disabled={!message.trim() || isLoading || isListening}
               className="send-button"
-              title="Send message"
             >
               {isLoading ? '⏳' : '📤'}
             </button>

@@ -897,3 +897,24 @@ select.form-control {
     font-size: var(--font-size-base); /* Prevent zoom on iOS */
   }
 }
+
+/* src/components/ChatInput.css */
+.language-select {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  margin-right: 4px;
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.language-select:hover {
+  background-color: var(--color-bg-1);
+}
+
+.language-select:focus {
+  outline: 2px solid var(--color-primary);
+}

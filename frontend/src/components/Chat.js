@@ -1,191 +1,171 @@
-// src/components/Chat.js - WITH FRONTEND TTS
-import React, { useState, useRef, useEffect } from 'react';
-import './Chat.css';
+// src/components/Chat.js
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import useWebSpeechSynthesis from '../hooks/useWebSpeechSynthesis';
-import { sendMessageToBot } from "../services/BotResponse";
+import VoiceService from '../services/VoiceService';
+import './Chat.css';
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentLanguage, setCurrentLanguage] = useState('en-US'); 
   
   const messagesEndRef = useRef(null);
-  
-  // Use frontend TTS instead of backend
-  const {
-    speak,
-    stop: stopSpeech,
-    isPlaying,
-    isSupported: ttsSupported,
-    error: ttsError
-  } = useWebSpeechSynthesis();
+  const { speak, stop: stopSpeech } = useWebSpeechSynthesis();
 
-  // Auto-scroll to bottom when new messages are added
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // --- 1. HYBRID AUDIO HANDLER (Updated for Arabic) ---
+  const handlePlayAudio = useCallback(async (text) => {
+    try {
+      // Check for Urdu OR Arabic
+      if (currentLanguage.includes('ur') || currentLanguage.includes('ar')) {
+        console.log(`🌍 Using Backend TTS for ${currentLanguage}...`);
+        
+        const result = await VoiceService.getBackendAudio(text, currentLanguage);
+        
+        if (result.success) {
+          const audio = new Audio(result.audioUrl);
+          audio.play();
+        } else {
+          console.error("Backend TTS failed:", result.error);
+        }
+      } else {
+        // English uses Browser TTS
+        await speak(text, { lang: currentLanguage });
+      }
+    } catch (err) {
+      console.error('Audio Playback Error:', err);
+    }
+  }, [currentLanguage, speak]);
 
-  const handleSendMessage = async (input, inputType = 'text') => {
+  // --- 2. MAIN HANDLER WITH TRANSLATION LOGIC ---
+  const handleSendMessage = useCallback(async (input, inputType = 'text') => {
     if (isLoading) return;
-
     setIsLoading(true);
     setError(null);
+    stopSpeech();
+
+    // 1. Show User Message IMMEDIATELY (in their language)
+    setMessages(prev => [...prev, {
+      id: Date.now(),
+      text: input,
+      isUser: true,
+      timestamp: new Date(),
+      inputType
+    }]);
 
     try {
-      // Add user message to chat
+      let promptToSend = input;
+
+      // --- STEP A: Translate Input to English (if needed) ---
+      if (!currentLanguage.startsWith('en')) {
+        console.log(`Translating input (${currentLanguage}) to English...`);
+        const transResult = await VoiceService.translateText(input, 'en');
+        if (transResult.success) {
+          promptToSend = transResult.text;
+          console.log("Sending translated prompt:", promptToSend);
+        }
+      }
+
+      // --- STEP B: Send to Sahrish's Backend ---
+      const result = await VoiceService.sendChatMessage(promptToSend);
+
+      if (!result.success) {
+        throw new Error(result.error || "Backend connection failed");
+      }
+
+      let botResponse = result.response;
+
+      // --- STEP C: Translate Output back to User Language (if needed) ---
+      if (!currentLanguage.startsWith('en')) {
+        // Map language codes for translator (ur-PK -> ur, ar-SA -> ar)
+        const targetLangCode = currentLanguage.split('-')[0];
+        console.log(`Translating response to ${targetLangCode}...`);
+        
+        const transBackResult = await VoiceService.translateText(botResponse, targetLangCode);
+        if (transBackResult.success) {
+          botResponse = transBackResult.text;
+        }
+      }
+
+      // 2. Show Bot Message (in user's language)
       setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: input,
-        isUser: true,
-        timestamp: new Date(),
-        inputType: inputType
+        id: Date.now() + 1,
+        text: botResponse,
+        isUser: false,
+        timestamp: new Date()
       }]);
 
-      const response = await sendMessageToBot(input);
-
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: Date.now() + 1,
-          text: response, 
-          isUser: false,
-          timestamp: new Date(),
-          originalInputType: inputType
-        }]);
-        setIsLoading(false);
-      }, 500); // Small delay to simulate processing
+      // 3. Auto-Play Audio (using Hybrid logic)
+      if (botResponse) {
+        setTimeout(() => {
+          handlePlayAudio(botResponse);
+        }, 100);
+      }
 
     } catch (err) {
-      console.error('Error processing message:', err);
-      setError(err.message || 'Failed to process message');
+      console.error("Chat Flow Error:", err);
+      setError("Error: " + err.message);
+    } finally {
       setIsLoading(false);
     }
-  };
-
-  const handlePlayAudio = async (text) => {
-    if (isPlaying) {
-      // Stop current audio
-      stopSpeech();
-      return;
-    }
-
-    try {
-      setError(null);
-      
-      // Use frontend TTS
-      await speak(text, {
-        speed: 1.0,
-        pitch: 1.0,
-        volume: 1.0
-      });
-      
-    } catch (err) {
-      console.error('Error playing audio:', err);
-      setError(err.message || 'Failed to play audio');
-    }
-  };
+  }, [isLoading, currentLanguage, handlePlayAudio, stopSpeech]);
 
   const clearChat = () => {
     setMessages([]);
+    stopSpeech();
     setError(null);
-    if (isPlaying) {
-      stopSpeech();
-    }
   };
 
   return (
     <div className="chat-container">
-      {/* Header */}
       <div className="chat-header">
         <div className="chat-title">
           <h1>WebVox Bot</h1>
           <div className="status-indicator connected">
             <span className="status-dot"></span>
-            <span className="status-text">
-              Ready (All Frontend Processing!)
-            </span>
+            <span className="status-text">Multilingual AI Active</span>
           </div>
         </div>
-        
         <div className="header-actions">
-          <button 
-            className="clear-button"
-            onClick={clearChat}
-            disabled={messages.length === 0}
-            title="Clear chat"
-          >
-            🗑️
-          </button>
+          <button className="clear-button" onClick={clearChat}>🗑️</button>
         </div>
       </div>
 
-      {/* Messages */}
       <div className="messages-container">
         {messages.length === 0 ? (
           <div className="welcome-message">
-            <div className="welcome-content">
-              <h2>Welcome to WebVox Bot! 🎙️</h2>
-              <p><strong>Now with 100% Frontend Processing!</strong></p>
-              <ul>
-                <li>Type a message in the input below</li>
-                <li>Click 🎤 to start voice input, 🛑 to stop</li>
-                <li>Voice preview shows in the textbox as you speak</li>
-                <li>Click 🔊 next to responses to hear them</li>
-                <li>Both STT and TTS work entirely in your browser</li>
-              </ul>
-              <p className="subtitle">No backend issues, everything works offline!</p>
+             <div className="welcome-content">
+              <h2>Welcome / خوش آمدید / أهلاً بك</h2>
+              <p>Select your language below and start speaking.</p>
             </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message.text}
-              isUser={message.isUser}
-              onPlayAudio={handlePlayAudio}
-              isPlaying={isPlaying}
-              inputType={message.inputType || message.originalInputType}
-            />
+          messages.map((m) => (
+            <ChatMessage key={m.id} message={m.text} isUser={m.isUser} />
           ))
         )}
-        
-        {isLoading && (
-          <div className="typing-indicator">
-            <div className="typing-dots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <p>Processing...</p>
-          </div>
-        )}
-        
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Error Display */}
-      {(error || ttsError) && (
+      {error && (
         <div className="error-message">
           <span className="error-icon">⚠️</span>
-          <span className="error-text">{error || ttsError}</span>
-          <button 
-            className="error-close"
-            onClick={() => setError(null)}
-          >
-            ✕
-          </button>
+          <span className="error-text">{error}</span>
+          <button className="error-close" onClick={() => setError(null)}>✕</button>
         </div>
       )}
 
-      {/* Input */}
       <ChatInput 
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+        language={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
       />
     </div>
   );

@@ -11,7 +11,7 @@ router_voicebot = APIRouter()
 # Initialize the VoiceBotManager with a default LLM.
 voice_bot = VoiceBotManager(llm=LLM)
 
-@router_voicebot.post("/webvox/chat")
+@router_voicebot.post("/api/v1/chat")
 async def chat_endpoint(request: ChatRequest):
     try:
         # Process the input using VoiceBotManager

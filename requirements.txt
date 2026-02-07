@@ -6,13 +6,20 @@ fastapi==0.118.0
 uvicorn==0.37.0
 pydantic==2.11
 python-multipart==0.0.9
+python-dotenv
+requests
 
 groq
 faiss-cpu
+transformers==4.41.0
 sentence-transformers
 google-generativeai
 
+numpy
+pyyaml
+
 soundfile
 
+gTTS
 pyttsx3
-openai-whisper
+deep-translator

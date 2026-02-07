@@ -1,52 +1,56 @@
-// src/components/VoiceInput.js - SIMPLE BUTTON WITH MANUAL STOP
-import React from 'react';
+// src/components/VoiceInput.js
+import React, { useCallback, useEffect, useRef } from 'react';
 import useWebSpeechRecognition from '../hooks/useWebSpeechRecognition';
 import './VoiceInput.css';
 
-const VoiceInput = ({ onVoiceInput, disabled }) => {
+const VoiceInput = ({ onVoiceInput, disabled, language = 'en-US' }) => {
+  // We use a ref to track if we were just listening, 
+  // so we can detect the specific moment it stops.
+  const wasListeningRef = useRef(false);
+
+  const handleTranscriptChange = useCallback((text, isFinal) => {
+    onVoiceInput(text, false);
+  }, [onVoiceInput]);
+
   const {
     transcript,
     isListening,
     isSupported,
     error,
     startListening,
-    stopListening,
-    resetTranscript
+    stopListening
   } = useWebSpeechRecognition({
-    onTranscriptChange: (transcript, isFinal) => {
-      // Send real-time updates to parent for textbox preview
-      onVoiceInput(transcript, isListening);
-    }
+    onTranscriptChange: handleTranscriptChange,
+    language: language,
+    silenceTimeout: 2000 // Stop after 2 seconds of silence
   });
+
+  // AUTO-SEND LOGIC:
+  // Detect when isListening switches from TRUE -> FALSE
+  useEffect(() => {
+    if (wasListeningRef.current && !isListening) {
+      // Logic: We were listening, now we stopped (due to silence or click)
+      // If we have text, send it!
+      if (transcript.trim()) {
+        console.log("📦 Auto-sending message:", transcript);
+        onVoiceInput(transcript.trim(), false, true); // isComplete = true
+      }
+    }
+    // Update ref for next render
+    wasListeningRef.current = isListening;
+  }, [isListening, transcript, onVoiceInput]);
 
   const handleVoiceToggle = () => {
     if (isListening) {
-      // MANUAL STOP - user pressed button to stop
+      // Manual stop (user clicked button)
       stopListening();
-      // Send final transcript when manually stopped
-      if (transcript.trim()) {
-        onVoiceInput(transcript.trim(), false, true); // Send as final
-        resetTranscript();
-      }
+      // The useEffect above will handle the sending when isListening becomes false
     } else {
-      // START listening
       startListening();
     }
   };
 
-  if (!isSupported) {
-    return (
-      <div className="voice-input">
-        <button
-          className="voice-button disabled"
-          disabled={true}
-          title="Speech recognition not supported in this browser"
-        >
-          🎤❌
-        </button>
-      </div>
-    );
-  }
+  if (!isSupported) return null;
 
   return (
     <div className="voice-input">
@@ -54,16 +58,20 @@ const VoiceInput = ({ onVoiceInput, disabled }) => {
         className={`voice-button ${isListening ? 'listening' : ''}`}
         onClick={handleVoiceToggle}
         disabled={disabled}
-        title={isListening ? 'Click to stop listening' : 'Click to start voice input'}
+        title={isListening ? 'Listening... (Stop speaking to send)' : `Speak (${language})`} 
+        type="button"
       >
         {isListening ? '🛑' : '🎤'}
       </button>
-      
-      {error && (
-        <div className="voice-error-small">
-          {error}
+
+      {/* Visual Feedback for Auto-Stop */}
+      {isListening && (
+        <div className="transcript-preview">
+           Listening... (Auto-send in 2s)
         </div>
       )}
+
+      {error && <div className="voice-error-small">{error}</div>}
     </div>
   );
 };

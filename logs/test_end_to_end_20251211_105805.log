@@ -1,0 +1,252 @@
+2025-12-11 10:58:05 | INFO     | 
+2025-12-11 10:58:05 | INFO     | ======================================================================
+2025-12-11 10:58:05 | INFO     |  WEBVOX RAG SYSTEM - END-TO-END TEST SUITE
+2025-12-11 10:58:05 | INFO     | ======================================================================
+2025-12-11 10:58:05 | INFO     | 
+2025-12-11 10:58:05 | INFO     | ======================================================================
+2025-12-11 10:58:05 | INFO     |  Component Tests
+2025-12-11 10:58:05 | INFO     | ======================================================================
+2025-12-11 10:58:05 | INFO     | 
+2025-12-11 10:58:05 | INFO     | [Component] Intent Detection
+2025-12-11 10:58:06 | INFO     |    'Tell me about pizza' → retrieve_information (conf: 0.90)
+2025-12-11 10:58:06 | INFO     |       ✅ Matched
+2025-12-11 10:58:06 | INFO     |    'Order a burger' → perform_action (conf: 0.90)
+2025-12-11 10:58:06 | INFO     |       ✅ Matched
+2025-12-11 10:58:07 | INFO     |    'Go to cart' → view_webpage (conf: 1.00)
+2025-12-11 10:58:07 | INFO     |       ✅ Matched
+2025-12-11 10:58:07 | INFO     | 
+2025-12-11 10:58:07 | INFO     | [Component] Database Agent
+2025-12-11 10:58:07 | INFO     |    'What pizzas do you have?' → menu_items (conf: 0.95)
+2025-12-11 10:58:07 | INFO     |       ✅ Matched
+2025-12-11 10:58:07 | INFO     |    'Tell me about your refund policy' → policies (conf: 1.00)
+2025-12-11 10:58:07 | INFO     |       ✅ Matched
+2025-12-11 10:58:08 | INFO     |    'Show my recent orders' → orders (conf: 0.95)
+2025-12-11 10:58:08 | INFO     |       ✅ Matched
+2025-12-11 10:58:08 | INFO     | 
+2025-12-11 10:58:08 | INFO     | [Component] Information Retrieval
+2025-12-11 10:58:21 | INFO     |    Status: success
+2025-12-11 10:58:21 | INFO     |    Source path: fast
+2025-12-11 10:58:21 | INFO     |    Context length: 421
+2025-12-11 10:58:21 | INFO     | 
+2025-12-11 10:58:21 | INFO     | ======================================================================
+2025-12-11 10:58:21 | INFO     |  VoiceBotManager End-to-End Tests
+2025-12-11 10:58:21 | INFO     | ======================================================================
+2025-12-11 10:58:21 | INFO     | 
+2025-12-11 10:58:21 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:21 | INFO     | 📝 Test: Menu Item Query - Specific Item
+2025-12-11 10:58:21 | INFO     | 🎤 User Query: "Tell me about Margherita Pizza"
+2025-12-11 10:58:21 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:22 | INFO     | 
+2025-12-11 10:58:22 | INFO     | 📊 Result:
+2025-12-11 10:58:22 | INFO     |    Category: retrieve_information
+2025-12-11 10:58:22 | INFO     |    Intent: get_menu_item
+2025-12-11 10:58:22 | INFO     |    Confidence: 0.9
+2025-12-11 10:58:22 | INFO     |    Status: success
+2025-12-11 10:58:22 | INFO     |    Time: 0.73s
+2025-12-11 10:58:22 | INFO     | 
+2025-12-11 10:58:22 | INFO     | 💬 Response (truncated): Our classic Margherita Pizza is a must-try. It features fresh tomatoes, mozzarella cheese, and basil on a delicious hand-tossed crust. This vegetarian pizza is available in **Small**, **Medium**, and ...
+2025-12-11 10:58:22 | INFO     | 
+2025-12-11 10:58:22 | INFO     | 📦 Metadata: {'source_path': 'fast', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}, 'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}
+2025-12-11 10:58:22 | INFO     | 
+2025-12-11 10:58:22 | INFO     |    ✅ Test PASSED
+2025-12-11 10:58:22 | INFO     | 
+2025-12-11 10:58:22 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:22 | INFO     | 📝 Test: Menu Item Query - All Items
+2025-12-11 10:58:22 | INFO     | 🎤 User Query: "What menu items do you have?"
+2025-12-11 10:58:22 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:24 | INFO     | 
+2025-12-11 10:58:24 | INFO     | 📊 Result:
+2025-12-11 10:58:24 | INFO     |    Category: retrieve_information
+2025-12-11 10:58:24 | INFO     |    Intent: get_menu_items
+2025-12-11 10:58:24 | INFO     |    Confidence: 1.0
+2025-12-11 10:58:24 | INFO     |    Status: success
+2025-12-11 10:58:24 | INFO     |    Time: 1.79s
+2025-12-11 10:58:24 | INFO     | 
+2025-12-11 10:58:24 | INFO     | 💬 Response (truncated): We've got a wide variety of menu options available. Let me walk you through them. We have pizzas, including Margherita, Pepperoni, and BBQ Chicken. Our pizza prices range from $12.99 to $15.99 for sma...
+2025-12-11 10:58:24 | INFO     | 
+2025-12-11 10:58:24 | INFO     | 📦 Metadata: {'source_path': 'combined', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 3, 'fresh_db_count': 10}, 'static_kb_count': 0, 'dynamic_db_count': 3, 'fresh_db_count': 10}
+2025-12-11 10:58:24 | INFO     | 
+2025-12-11 10:58:24 | INFO     |    ✅ Test PASSED
+2025-12-11 10:58:24 | INFO     | 
+2025-12-11 10:58:24 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:24 | INFO     | 📝 Test: Menu Item Query - Category Filter
+2025-12-11 10:58:24 | INFO     | 🎤 User Query: "Tell me about all pizzas"
+2025-12-11 10:58:24 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:33 | INFO     | 
+2025-12-11 10:58:33 | INFO     | 📊 Result:
+2025-12-11 10:58:33 | INFO     |    Category: retrieve_information
+2025-12-11 10:58:33 | INFO     |    Intent: get_menu_category
+2025-12-11 10:58:33 | INFO     |    Confidence: 0.9
+2025-12-11 10:58:33 | INFO     |    Status: success
+2025-12-11 10:58:33 | INFO     |    Time: 9.10s
+2025-12-11 10:58:33 | INFO     | 
+2025-12-11 10:58:33 | INFO     | 💬 Response (truncated): Our pizza menu is delicious and varied. We have three mouth-watering options:
+
+First, we have the Pepperoni Pizza - a classic loaded with pepperoni slices and melted mozzarella, available in Small ($1...
+2025-12-11 10:58:33 | INFO     | 
+2025-12-11 10:58:33 | INFO     | 📦 Metadata: {'source_path': 'fast', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}, 'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}
+2025-12-11 10:58:33 | INFO     | 
+2025-12-11 10:58:33 | INFO     |    ✅ Test PASSED
+2025-12-11 10:58:33 | INFO     | 
+2025-12-11 10:58:33 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:33 | INFO     | 📝 Test: Policy Query - Delivery
+2025-12-11 10:58:33 | INFO     | 🎤 User Query: "What is your delivery policy?"
+2025-12-11 10:58:33 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:43 | INFO     | 
+2025-12-11 10:58:43 | INFO     | 📊 Result:
+2025-12-11 10:58:43 | INFO     |    Category: retrieve_information
+2025-12-11 10:58:43 | INFO     |    Intent: get_policies
+2025-12-11 10:58:43 | INFO     |    Confidence: 0.9
+2025-12-11 10:58:43 | INFO     |    Status: success
+2025-12-11 10:58:43 | INFO     |    Time: 9.97s
+2025-12-11 10:58:43 | INFO     | 
+2025-12-11 10:58:43 | INFO     | 💬 Response (truncated): Our delivery policy is quite straightforward. We deliver within a 10-mile radius, and the best part is, you get free delivery on orders over $25. Now, about timing, delivery usually takes anywhere fro...
+2025-12-11 10:58:43 | INFO     | 
+2025-12-11 10:58:43 | INFO     | 📦 Metadata: {'source_path': 'fast', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}, 'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}
+2025-12-11 10:58:43 | INFO     | 
+2025-12-11 10:58:43 | INFO     |    ✅ Test PASSED
+2025-12-11 10:58:43 | INFO     | 
+2025-12-11 10:58:43 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:43 | INFO     | 📝 Test: Policy Query - Refund
+2025-12-11 10:58:43 | INFO     | 🎤 User Query: "Tell me about your refund policy"
+2025-12-11 10:58:43 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:54 | INFO     | 
+2025-12-11 10:58:54 | INFO     | 📊 Result:
+2025-12-11 10:58:54 | INFO     |    Category: retrieve_information
+2025-12-11 10:58:54 | INFO     |    Intent: get_policies
+2025-12-11 10:58:54 | INFO     |    Confidence: 1.0
+2025-12-11 10:58:54 | INFO     |    Status: success
+2025-12-11 10:58:54 | INFO     |    Time: 10.81s
+2025-12-11 10:58:54 | INFO     | 
+2025-12-11 10:58:54 | INFO     | 💬 Response (truncated): Our refund policy is designed to give you peace of mind when ordering from us. If you cancel your order within 5 minutes of placing it, you'll receive a full refund. We also understand that sometimes ...
+2025-12-11 10:58:54 | INFO     | 
+2025-12-11 10:58:54 | INFO     | 📦 Metadata: {'source_path': 'fast', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}, 'static_kb_count': 0, 'dynamic_db_count': 4, 'fresh_db_count': 0}
+2025-12-11 10:58:54 | INFO     | 
+2025-12-11 10:58:54 | INFO     |    ✅ Test PASSED
+2025-12-11 10:58:54 | INFO     | 
+2025-12-11 10:58:54 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:58:54 | INFO     | 📝 Test: Order Query
+2025-12-11 10:58:54 | INFO     | 🎤 User Query: "Show me my orders"
+2025-12-11 10:58:54 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:00 | INFO     | 
+2025-12-11 10:59:00 | INFO     | 📊 Result:
+2025-12-11 10:59:00 | INFO     |    Category: view_webpage
+2025-12-11 10:59:00 | INFO     |    Intent: get_order history
+2025-12-11 10:59:00 | INFO     |    Confidence: 0.9
+2025-12-11 10:59:00 | INFO     |    Status: not_supported
+2025-12-11 10:59:00 | INFO     |    Time: 6.45s
+2025-12-11 10:59:00 | INFO     | 
+2025-12-11 10:59:00 | INFO     | 💬 Response: Webpage navigation is not yet available. Please ask me about specific information you're looking for, and I'll help you find it.
+2025-12-11 10:59:00 | INFO     | 
+2025-12-11 10:59:00 | INFO     | 📦 Metadata: {'reason': 'webpage_navigation_not_implemented'}
+2025-12-11 10:59:00 | INFO     | 
+2025-12-11 10:59:00 | INFO     |    ✅ Test PASSED
+2025-12-11 10:59:00 | INFO     | 
+2025-12-11 10:59:00 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:00 | INFO     | 📝 Test: Categories Query
+2025-12-11 10:59:00 | INFO     | 🎤 User Query: "What food categories do you have?"
+2025-12-11 10:59:00 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:17 | INFO     | 
+2025-12-11 10:59:17 | INFO     | 📊 Result:
+2025-12-11 10:59:17 | INFO     |    Category: retrieve_information
+2025-12-11 10:59:17 | INFO     |    Intent: get_menu_categories
+2025-12-11 10:59:17 | INFO     |    Confidence: 1.0
+2025-12-11 10:59:17 | INFO     |    Status: success
+2025-12-11 10:59:17 | INFO     |    Time: 16.83s
+2025-12-11 10:59:17 | INFO     | 
+2025-12-11 10:59:17 | INFO     | 💬 Response (truncated): We have quite a variety of food categories to choose from. Let's see, we have Pizza, Burgers, and Pasta - all handcrafted with fresh ingredients to satisfy your cravings. If you're looking for somethi...
+2025-12-11 10:59:17 | INFO     | 
+2025-12-11 10:59:17 | INFO     | 📦 Metadata: {'source_path': 'combined', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 3, 'fresh_db_count': 6}, 'static_kb_count': 0, 'dynamic_db_count': 3, 'fresh_db_count': 6}
+2025-12-11 10:59:17 | INFO     | 
+2025-12-11 10:59:17 | INFO     |    ✅ Test PASSED
+2025-12-11 10:59:17 | INFO     | 
+2025-12-11 10:59:17 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:17 | INFO     | 📝 Test: Action Request (Should be unsupported)
+2025-12-11 10:59:17 | INFO     | 🎤 User Query: "Order two Pepperoni pizzas"
+2025-12-11 10:59:17 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:23 | INFO     | 
+2025-12-11 10:59:23 | INFO     | 📊 Result:
+2025-12-11 10:59:23 | INFO     |    Category: perform_action
+2025-12-11 10:59:23 | INFO     |    Intent: place_order
+2025-12-11 10:59:23 | INFO     |    Confidence: 0.85
+2025-12-11 10:59:23 | INFO     |    Status: not_supported
+2025-12-11 10:59:23 | INFO     |    Time: 6.11s
+2025-12-11 10:59:23 | INFO     | 
+2025-12-11 10:59:23 | INFO     | 💬 Response: I can currently only help with information retrieval. Actions like ordering, cancelling, or booking are not yet available. Please ask me about our menu, policies, or other information instead.
+2025-12-11 10:59:23 | INFO     | 
+2025-12-11 10:59:23 | INFO     | 📦 Metadata: {'reason': 'action_execution_not_implemented'}
+2025-12-11 10:59:23 | INFO     | 
+2025-12-11 10:59:23 | INFO     |    ✅ Test PASSED
+2025-12-11 10:59:23 | INFO     | 
+2025-12-11 10:59:23 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:23 | INFO     | 📝 Test: Navigation Request (Should be unsupported)
+2025-12-11 10:59:23 | INFO     | 🎤 User Query: "Go to the desserts page"
+2025-12-11 10:59:23 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:29 | INFO     | 
+2025-12-11 10:59:29 | INFO     | 📊 Result:
+2025-12-11 10:59:29 | INFO     |    Category: view_webpage
+2025-12-11 10:59:29 | INFO     |    Intent: view_dessert_menu
+2025-12-11 10:59:29 | INFO     |    Confidence: 0.9
+2025-12-11 10:59:29 | INFO     |    Status: not_supported
+2025-12-11 10:59:29 | INFO     |    Time: 6.41s
+2025-12-11 10:59:29 | INFO     | 
+2025-12-11 10:59:29 | INFO     | 💬 Response: Webpage navigation is not yet available. Please ask me about specific information you're looking for, and I'll help you find it.
+2025-12-11 10:59:29 | INFO     | 
+2025-12-11 10:59:29 | INFO     | 📦 Metadata: {'reason': 'webpage_navigation_not_implemented'}
+2025-12-11 10:59:29 | INFO     | 
+2025-12-11 10:59:29 | INFO     |    ✅ Test PASSED
+2025-12-11 10:59:29 | INFO     | 
+2025-12-11 10:59:29 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:29 | INFO     | 📝 Test: Vegetarian Filter
+2025-12-11 10:59:29 | INFO     | 🎤 User Query: "What vegetarian options do you have?"
+2025-12-11 10:59:29 | INFO     | ──────────────────────────────────────────────────────────────────────
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     | 📊 Result:
+2025-12-11 10:59:40 | INFO     |    Category: retrieve_information
+2025-12-11 10:59:40 | INFO     |    Intent: get_menu_items
+2025-12-11 10:59:40 | INFO     |    Confidence: 0.8
+2025-12-11 10:59:40 | INFO     |    Status: success
+2025-12-11 10:59:40 | INFO     |    Time: 10.60s
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     | 💬 Response (truncated): Our vegetarian options are quite delicious. We have a **Veggie Burger**. It's a plant-based patty with avocado, sprouts, and vegan mayo, and it comes out for just $10.99. It's also really popular, wit...
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     | 📦 Metadata: {'source_path': 'fast', 'retrieval_metadata': {'static_kb_count': 0, 'dynamic_db_count': 3, 'fresh_db_count': 0}, 'static_kb_count': 0, 'dynamic_db_count': 3, 'fresh_db_count': 0}
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     |    ✅ Test PASSED
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     | ======================================================================
+2025-12-11 10:59:40 | INFO     |  Test Summary
+2025-12-11 10:59:40 | INFO     | ======================================================================
+2025-12-11 10:59:40 | INFO     |    ✅ Menu Item Query - Specific Item (0.73s)
+2025-12-11 10:59:40 | INFO     |    ✅ Menu Item Query - All Items (1.79s)
+2025-12-11 10:59:40 | INFO     |    ✅ Menu Item Query - Category Filter (9.10s)
+2025-12-11 10:59:40 | INFO     |    ✅ Policy Query - Delivery (9.97s)
+2025-12-11 10:59:40 | INFO     |    ✅ Policy Query - Refund (10.81s)
+2025-12-11 10:59:40 | INFO     |    ✅ Order Query (6.45s)
+2025-12-11 10:59:40 | INFO     |    ✅ Categories Query (16.83s)
+2025-12-11 10:59:40 | INFO     |    ✅ Action Request (Should be unsupported) (6.11s)
+2025-12-11 10:59:40 | INFO     |    ✅ Navigation Request (Should be unsupported) (6.41s)
+2025-12-11 10:59:40 | INFO     |    ✅ Vegetarian Filter (10.60s)
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     |    Total: 10 | Passed: 10 | Failed: 0
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     | ======================================================================
+2025-12-11 10:59:40 | INFO     |  Fast Path Caching Test
+2025-12-11 10:59:40 | INFO     | ======================================================================
+2025-12-11 10:59:40 | INFO     | 
+2025-12-11 10:59:40 | INFO     | [Query 1] First request (should use SLOW path)
+2025-12-11 10:59:40 | INFO     |    Query: "Tell me about refund policies"
+2025-12-11 10:59:52 | INFO     |    Time: 11.62s
+2025-12-11 10:59:52 | INFO     |    Source path: fast
+2025-12-11 10:59:52 | INFO     |    Vector store after query: {'static_kb_count': 2, 'dynamic_db_count': 19, 'total_count': 21}
+2025-12-11 10:59:52 | INFO     | 
+2025-12-11 10:59:52 | INFO     | [Query 2] Second request (should use FAST path if cached)
+2025-12-11 10:59:52 | INFO     |    Query: "Tell me about refund policies"
+2025-12-11 11:00:01 | INFO     |    Time: 9.10s
+2025-12-11 11:00:01 | INFO     |    Source path: fast
+2025-12-11 11:00:01 | INFO     | 
+2025-12-11 11:00:01 | INFO     |    ✅ Fast path is faster! (11.62s → 9.10s)
+2025-12-11 11:00:01 | INFO     | 
+2025-12-11 11:00:01 | INFO     | ======================================================================
+2025-12-11 11:00:01 | INFO     |  ALL TESTS COMPLETED
+2025-12-11 11:00:01 | INFO     | ======================================================================

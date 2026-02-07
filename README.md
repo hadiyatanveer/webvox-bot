@@ -49,8 +49,16 @@ npm install react-scripts@5.0.1
 npm start
 ```
 
-### 2. Run the backend
+### 3. Run the backend
 
 ```bash
 python3 -m backend.main
 ```
+
+### 4. Create static knowledge base
+
+```bash
+python3 -m services.vector_db.ingest_static_kb
+```
+In order to get vector databases made, shorten chunk sizes (data currently too small for large chunks)
+
