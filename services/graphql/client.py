@@ -278,16 +278,47 @@ class HasuraClient(GraphQLClientBase):
         return [f["name"] for f in fields]
 
 
-    def query_table(self, table_name: str) -> Dict[str, Any]:
-        columns = self.get_table_columns(table_name)
-        query = f"""query {{{table_name} {{{" ".join(columns)}}}}}"""
+    def query_table(self, table_name: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Query a specific table by name.
         
-        res = requests.post(self.endpoint, json={"query": query}, headers=self._HEADERS)
-        res.raise_for_status()
-        data = res.json()
-        if "errors" in data:
-            raise Exception(data["errors"])
-        return data["data"][table_name]
+        Args:
+            table_name: Name of the table to query
+            params: Optional filter parameters (not yet implemented for Hasura)
+            
+        Returns:
+            Query result with success status and data (matching MockGraphQLClient format)
+        """
+        try:
+            columns = self.get_table_columns(table_name)
+            query = f"""query {{{table_name} {{{" ".join(columns)}}}}}"""
+            
+            res = requests.post(self.endpoint, json={"query": query}, headers=self._HEADERS)
+            res.raise_for_status()
+            data = res.json()
+            
+            if "errors" in data:
+                return {
+                    "success": False,
+                    "error": str(data["errors"]),
+                    "data": None,
+                    "table": table_name
+                }
+            
+            return {
+                "success": True,
+                "error": None,
+                "data": data["data"][table_name],
+                "table": table_name,
+                "query_type": table_name  # For backward compatibility
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "data": None,
+                "table": table_name
+            }
 
     def query(self, query_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
         # This generic 'query' method is too broad for the introspection focus,
