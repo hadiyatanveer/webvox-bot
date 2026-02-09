@@ -75,20 +75,9 @@ Your task is to determine which database table to query based on the user's requ
 **Response Format (JSON only):**
 {{
     "table": "table_name",
-    "params": {{
-        "category": "optional category filter",
-        "search": "optional search term",
-        "vegetarian": false,
-        "user_id": "optional user ID for orders"
-    }},
     "confidence": 0.95,
     "reasoning": "Brief explanation of why this table was selected"
 }}
-
-**Parameter Rules:**
-- For vegetarian/vegan queries: set "vegetarian": true (boolean, not a string)
-- For category queries: use exact category names like "Pizza", "Burgers", "Pasta", "Salads", "Desserts", "Beverages"
-- For specific items: use "search" with the item name
 
 **Examples:**
 - "Tell me about Margherita Pizza" → table: "menu_items", params: {{"search": "Margherita Pizza"}}
@@ -119,17 +108,13 @@ Respond with ONLY the JSON object, no other text:"""
             print(f"  🤖 LLM Router: table={result['table']}, confidence={result['confidence']:.2f}")
             print(f"     Reasoning: {result.get('reasoning', 'N/A')}")
             
-            return result["table"], result["params"], result["confidence"]
+            return result["table"], result["confidence"]
             
         except Exception as e:
             print(f"  ⚠️ LLM Router error: {e}, falling back to menu_items")
             return "menu_items", {}, 0.5
     
-    def _parse_llm_response(
-        self, 
-        raw_text: str, 
-        available_tables: List[str]
-    ) -> Dict[str, Any]:
+    def _parse_llm_response(self, raw_text: str, available_tables: List[str]) -> Dict[str, Any]:
         """Parse LLM response and validate table selection."""
         
         # Try to extract JSON from response

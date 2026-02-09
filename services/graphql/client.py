@@ -267,26 +267,27 @@ class HasuraClient(GraphQLClientBase):
             return {"success": True, "schema": {"columns": column_names}}
         except Exception as e:
             return {"success": False, "error": str(e), "schema": None}
-
-
-    def query_table(self, table_name: str, columns: List[str]) -> Dict[str, Any]:
-        if not columns: return {"success": False, "error": "Columns list cannot be empty", "data": None}
-            
-        query = f"""
-        query {{
-          {table_name} {{
-            {" ".join(columns)}
-          }}
-        }}
-        """
         
-        try:
-            resp_json = self._execute_graphql(query)
-            
-            rows = resp_json["data"].get(table_name, [])
-            return {"success": True, "data": rows}
-        except Exception as e:
-            return {"success": False, "error": str(e), "data": None}
+    def get_table_columns(self, table_name):
+        query = f"""query {{ __type(name: "{table_name}") {{ fields {{ name }} }} }}"""
+        
+        res = requests.post(self.endpoint, json={"query": query}, headers=self._HEADERS)
+        res.raise_for_status()
+        data = res.json()
+        fields = data["data"]["__type"]["fields"]
+        return [f["name"] for f in fields]
+
+
+    def query_table(self, table_name: str) -> Dict[str, Any]:
+        columns = self.get_table_columns(table_name)
+        query = f"""query {{{table_name} {{{" ".join(columns)}}}}}"""
+        
+        res = requests.post(self.endpoint, json={"query": query}, headers=self._HEADERS)
+        res.raise_for_status()
+        data = res.json()
+        if "errors" in data:
+            raise Exception(data["errors"])
+        return data["data"][table_name]
 
     def query(self, query_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
         # This generic 'query' method is too broad for the introspection focus,
@@ -330,32 +331,6 @@ class HasuraClient(GraphQLClientBase):
             return {"success": False, "error": "One or more table queries failed.", "data": all_data}
 
 
-class DirectusClient(GraphQLClientBase):
-    """Directus GraphQL client for MySQL databases."""
-    
-    def __init__(self, endpoint: str, access_token: Optional[str] = None):
-        self.endpoint = endpoint
-        self.access_token = access_token
-    
-    def query(self, query_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        return {"success": False, "error": "Directus client not yet implemented", "data": None}
-    
-    def get_available_types(self) -> List[str]:
-        return []
-    
-    def get_available_tables(self) -> List[str]:
-        return []
-    
-    def query_table(self, table_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        return {"success": False, "error": "Directus client not yet implemented", "data": None}
-    
-    def query_all_tables(self) -> Dict[str, Any]:
-        return {"success": False, "error": "Directus client not yet implemented", "data": None}
-    
-    def get_table_schema(self, table_name: str) -> Dict[str, Any]:
-        return {"success": False, "error": "Directus client not yet implemented", "schema": None}
-
-
 def get_graphql_client() -> GraphQLClientBase:
     """Get the appropriate GraphQL client based on configuration."""
     config = get_config()
@@ -367,10 +342,6 @@ def get_graphql_client() -> GraphQLClientBase:
         endpoint = config.get('graphql.hasura.endpoint')
         admin_secret = config.get('graphql.hasura.admin_secret')
         return HasuraClient(endpoint, admin_secret)
-    elif mode == 'directus':
-        endpoint = config.get('graphql.directus.endpoint')
-        access_token = config.get('graphql.directus.access_token')
-        return DirectusClient(endpoint, access_token)
     else:
         print(f"⚠️ Unknown GraphQL mode: {mode}, falling back to mock")
         return MockGraphQLClient()

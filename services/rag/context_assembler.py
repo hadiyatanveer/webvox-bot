@@ -156,18 +156,18 @@ class ContextAssembler:
         print(f"  📋 Available tables: {available_tables}")
         
         # Use LLM agent to determine which table to query
-        table_name, params, confidence = self.database_agent.route(
+        table_name, confidence = self.database_agent.route(
             user_query=query,
             available_tables=available_tables,
             detected_entities=detected_entities
         )
         
-        print(f"  → LLM selected table: {table_name}, params: {params}, confidence: {confidence:.2f}")
+        print(f"  → LLM selected table: {table_name}, confidence: {confidence:.2f}")
         
         # Execute query against the selected table
-        raw_response = self.graphql_client.query_table(table_name, params)
+        raw_response = self.graphql_client.query_table(table_name)
         
-        if not raw_response.get("success"):
+        if not raw_response:
             print(f"  ⚠️ Table query failed: {raw_response.get('error')}")
             return []
         
