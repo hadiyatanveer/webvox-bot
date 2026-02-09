@@ -167,7 +167,7 @@ class ContextAssembler:
         # Execute query against the selected table
         raw_response = self.graphql_client.query_table(table_name)
         
-        if not raw_response:
+        if not raw_response.get("success"):
             print(f"  ⚠️ Table query failed: {raw_response.get('error')}")
             return []
         
