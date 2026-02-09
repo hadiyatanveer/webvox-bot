@@ -57,6 +57,12 @@ docker compose up --build -d
 ```bash
 python3 hasura_setup.py
 ```
+    
+4. Make .env
+```bash
+export HASURA_ENDPOINT="http://localhost:8080/v1/graphql"
+export JWT_TOKEN="your-jwt-token-here"
+```
 
 ## ⚙️ Setup Instructions
 
