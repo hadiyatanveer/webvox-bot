@@ -30,6 +30,34 @@ webvox-bot/
 └── main.py
 ```
 
+## ⚙️ GraphQL Setup Instructions
+
+The project consists of two main parts:
+- GraphQL layer (Hasura + Postgres) — must be started first
+- WebVox application (backend + frontend)
+
+Navigate to the GraphQL folder first.
+```bash
+cd GraphQL
+```
+
+1. Create and activate a virtual environment, then install requirements
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Start Hasura and Postgres using Docker
+```bash
+docker compose up --build -d
+```
+
+3. Run Hasura setup script
+```bash
+python3 hasura_setup.py
+```
+
 ## ⚙️ Setup Instructions
 
 Follow these simple steps to run the project locally.
