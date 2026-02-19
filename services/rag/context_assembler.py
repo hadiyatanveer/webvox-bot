@@ -11,7 +11,7 @@ from services.vector_db.models import RAGContext, SearchResult, VectorChunk
 from services.vector_db.vector_store import get_vector_store
 from services.vector_db.chunk_manager import get_chunk_manager
 from services.graphql.client import get_graphql_client
-from services.graphql.database_agent import get_database_router_agent
+from services.graphql.query_planner import get_query_planner_agent
 from services.graphql.response_handler import get_response_handler
 
 
@@ -27,7 +27,7 @@ class ContextAssembler:
         self.vector_store = get_vector_store()
         self.chunk_manager = get_chunk_manager()
         self.graphql_client = get_graphql_client()
-        self.database_agent = get_database_router_agent()  # LLM-based router
+        self.query_planner = get_query_planner_agent()  # Query planner with schema introspection
         self.response_handler = get_response_handler()
         
         # Configuration
@@ -141,7 +141,7 @@ class ContextAssembler:
         detected_entities: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
-        Slow path: Use LLM agent to route query to appropriate database table.
+        Slow path: Use query planner to generate and execute GraphQL queries.
         
         Args:
             query: User query
@@ -150,29 +150,27 @@ class ContextAssembler:
         Returns:
             List of normalized results
         """
-        # Get available tables from GraphQL client
-        available_tables = self.graphql_client.get_available_tables()
-        
-        print(f"  📋 Available tables: {available_tables}")
-        
-        # Use LLM agent to determine which table to query
-        table_name, confidence = self.database_agent.route(
+        # Use query planner to generate a query plan and GraphQL query
+        query_plan, graphql_query = self.query_planner.plan_query(
             user_query=query,
-            available_tables=available_tables,
             detected_entities=detected_entities
         )
         
-        print(f"  → LLM selected table: {table_name}, confidence: {confidence:.2f}")
+        print(f"  → Query plan: {query_plan.primary_table}, confidence: {query_plan.confidence:.2f}")
+        print(f"  → Generated GraphQL query:")
+        print(f"    {graphql_query.replace(chr(10), chr(10) + '    ')}")
         
-        # Execute query against the selected table
-        raw_response = self.graphql_client.query_table(table_name)
+        # Execute the generated GraphQL query
+        raw_response = self.graphql_client.execute_graphql_query(graphql_query)
+        print("Raw GraphQL Query response:", raw_response)
         
         if not raw_response.get("success"):
-            print(f"  ⚠️ Table query failed: {raw_response.get('error')}")
+            print(f"  ⚠️ GraphQL query failed: {raw_response.get('error')}")
             return []
         
         # Normalize response
-        normalized = self.response_handler.normalize(raw_response, table_name)
+        query_type = raw_response.get("query_type", query_plan.primary_table)
+        normalized = self.response_handler.normalize(raw_response, query_type)
         
         if not normalized.get("success"):
             return []
