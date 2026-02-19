@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, List
 
 from utilities.config_loader import get_config
 from utilities.llm_configure import generate_content
+from utilities.prompt_loader import load_prompt
 
 
 class ResponseGenerator:
@@ -38,14 +39,21 @@ class ResponseGenerator:
         category = intent_data.get("category", "unknown")
         
         # Route to appropriate generator based on intent category
-        if category == "retrieve_information":
+        if category == "information":
             return self._generate_information_response(user_query, intent_data, retrieval_result)
         
-        elif category == "perform_action":
+        elif category == "action":
             return self._generate_action_not_supported_response()
         
-        elif category == "view_webpage":
+        elif category == "webpage":
             return self._generate_webpage_not_supported_response()
+        
+        elif category == "greeting":
+            # Greetings are fully handled by voicebot_manager; this is a safety fallback
+            return {
+                "response": "Hey there! I'm WebVox, your voice assistant. Ask me anything about our menu, prices, or policies!",
+                "status": "greeting"
+            }
         
         else:
             return self._generate_clarification_response(user_query, intent_data)
@@ -71,25 +79,12 @@ class ResponseGenerator:
         
         # Build prompt with context
         context = retrieval_result.get("context", "")
+        print("context given to user:", context)
         
-        prompt = f"""You are WebVox, a helpful voice assistant for a food delivery website.
-        
-Based on the following information from our database, answer the user's question naturally and helpfully.
-
-**Retrieved Information:**
-{context}
-
-**User's Question:** {user_query}
-
-**Instructions:**
-- Answer conversationally and naturally, as if speaking aloud
-- Be concise but complete - this will be read aloud
-- If the information partially answers the question, provide what you can and ask if they need more details
-- Format prices, times, and quantities clearly
-- If multiple items match, summarize them or ask which one they're interested in
-- Do not make up information not in the context
-
-Your response:"""
+        prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
+            "context": context,
+            "user_query": user_query,
+        })
 
         try:
             response = generate_content(prompt)
