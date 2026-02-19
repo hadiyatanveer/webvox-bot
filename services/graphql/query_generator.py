@@ -44,7 +44,6 @@ class QueryGenerator:
     
     def __init__(self):
         pass
-    
     def generate_query(self, query_plan: QueryPlan) -> str:
         """
         Generate a complete GraphQL query from a QueryPlan.
