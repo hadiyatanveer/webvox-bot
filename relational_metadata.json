@@ -1,0 +1,330 @@
+{
+    "version": "1.0",
+    "database": "restaurant_system",
+    "tables": {
+        "categories": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "menu_items",
+                    "type": "one_to_many",
+                    "target_table": "menu_items",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "category_id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "menu_items": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "category",
+                    "type": "many_to_one",
+                    "target_table": "categories",
+                    "local_columns": [
+                        "category_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "order_items",
+                    "type": "one_to_many",
+                    "target_table": "order_items",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "menu_item_id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "reviews",
+                    "type": "one_to_many",
+                    "target_table": "reviews",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "menu_item_id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "inventory",
+                    "type": "one_to_many",
+                    "target_table": "inventory",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "menu_item_id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "users": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "orders",
+                    "type": "one_to_many",
+                    "target_table": "orders",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "user_id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "reservations",
+                    "type": "one_to_many",
+                    "target_table": "reservations",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "user_id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "payments",
+                    "type": "one_to_many",
+                    "target_table": "payments",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "user_id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "reviews",
+                    "type": "one_to_many",
+                    "target_table": "reviews",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "user_id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "orders": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "user",
+                    "type": "many_to_one",
+                    "target_table": "users",
+                    "local_columns": [
+                        "user_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "order_items",
+                    "type": "one_to_many",
+                    "target_table": "order_items",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "order_id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "payments",
+                    "type": "one_to_many",
+                    "target_table": "payments",
+                    "local_columns": [
+                        "id"
+                    ],
+                    "target_columns": [
+                        "order_id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "order_items": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "order",
+                    "type": "many_to_one",
+                    "target_table": "orders",
+                    "local_columns": [
+                        "order_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "menu_item",
+                    "type": "many_to_one",
+                    "target_table": "menu_items",
+                    "local_columns": [
+                        "menu_item_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "reservations": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "user",
+                    "type": "many_to_one",
+                    "target_table": "users",
+                    "local_columns": [
+                        "user_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "payments": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "order",
+                    "type": "many_to_one",
+                    "target_table": "orders",
+                    "local_columns": [
+                        "order_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "user",
+                    "type": "many_to_one",
+                    "target_table": "users",
+                    "local_columns": [
+                        "user_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "reviews": {
+            "primary_key": [
+                "id"
+            ],
+            "unique_constraints": [
+                {
+                    "name": "unique_user_item_review",
+                    "columns": [
+                        "user_id",
+                        "menu_item_id"
+                    ]
+                }
+            ],
+            "relationships": [
+                {
+                    "name": "user",
+                    "type": "many_to_one",
+                    "target_table": "users",
+                    "local_columns": [
+                        "user_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "menu_item",
+                    "type": "many_to_one",
+                    "target_table": "menu_items",
+                    "local_columns": [
+                        "menu_item_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "inventory": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": [
+                {
+                    "name": "menu_item",
+                    "type": "many_to_one",
+                    "target_table": "menu_items",
+                    "local_columns": [
+                        "menu_item_id"
+                    ],
+                    "target_columns": [
+                        "id"
+                    ],
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "staff": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": []
+        },
+        "policies": {
+            "primary_key": [
+                "id"
+            ],
+            "relationships": []
+        }
+    }
+}
