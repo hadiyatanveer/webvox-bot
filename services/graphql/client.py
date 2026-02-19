@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import requests
 from typing import Dict, Any, List, Optional
 from abc import ABC, abstractmethod
@@ -37,6 +38,11 @@ class GraphQLClientBase(ABC):
     @abstractmethod
     def get_table_schema(self, table_name: str) -> Dict[str, Any]:
         """Get schema/structure information for a table."""
+        pass
+    
+    @abstractmethod
+    def execute_graphql_query(self, query_string: str) -> Dict[str, Any]:
+        """Execute a raw GraphQL query string."""
         pass
 
 
@@ -187,18 +193,122 @@ class MockGraphQLClient(GraphQLClientBase):
     def _query_policies(self, params: Dict[str, Any]) -> List[Dict]:
         from services.graphql.mock_data import get_mock_policies
         return get_mock_policies(policy_type=params.get("type"))
+    
+    def execute_graphql_query(self, query_string: str) -> Dict[str, Any]:
+        """
+        Execute a raw GraphQL query string (mock implementation).
+        Parses simple GraphQL queries and executes them.
+        
+        Args:
+            query_string: GraphQL query string
+            
+        Returns:
+            Query result with success status and data
+        """
+        import re
+        
+        try:
+            # Extract table name from query
+            # Match pattern like: table_name(where: {...}) { ... } or just table_name { ... }
+            table_match = re.search(r'(\w+)\s*(?:\([^)]*\))?\s*\{', query_string)
+            if not table_match:
+                return {
+                    "success": False,
+                    "error": "Could not parse table name from query",
+                    "data": None
+                }
+            
+            table_name = table_match.group(1)
+            
+            # Skip if this is a meta query (query, __type, etc.)
+            if table_name in ['query', '__type', '__schema']:
+                return {
+                    "success": False,
+                    "error": "Meta queries not supported in mock mode",
+                    "data": None
+                }
+            
+            # Extract WHERE conditions (simplified parsing)
+            where_match = re.search(r'where:\s*\{([^}]+)\}', query_string)
+            params = {}
+            
+            if where_match:
+                where_content = where_match.group(1)
+                
+                # Parse simple WHERE conditions
+                # Example: category: {_eq: 1} or name: {_ilike: "%Pizza%"}
+                conditions = re.findall(r'(\w+):\s*\{(\w+):\s*([^}]+)\}', where_content)
+                
+                for field, operator, value in conditions:
+                    # Clean value
+                    value = value.strip().strip('"').strip("'")
+                    
+                    # Convert types
+                    if value.lower() == 'true':
+                        value = True
+                    elif value.lower() == 'false':
+                        value = False
+                    elif value.replace('.', '').isdigit():
+                        value = float(value) if '.' in value else int(value)
+                    
+                    # Handle different operators
+                    if operator == '_eq':
+                        params[field] = value
+                    elif operator == '_ilike':
+                        # For _ilike, use the value as search term (remove %)
+                        params['search'] = value.replace('%', '')
+                    elif operator in ['_in', '_nin']:
+                        # Arrays
+                        params[field] = value
+            
+            # Extract limit
+            limit_match = re.search(r'limit:\s*(\d+)', query_string)
+            if limit_match:
+                params['limit'] = int(limit_match.group(1))
+            
+            # Execute the query using the table handler
+            result = self.query_table(table_name, params)
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error executing GraphQL query: {str(e)}",
+                "data": None
+            }
 
 
 class HasuraClient(GraphQLClientBase):   
     def __init__(self, endpoint: str, admin_secret: Optional[str] = None):
+        load_dotenv()
         self.role = "WebVox-User"
         self.endpoint = os.environ.get('HASURA_ENDPOINT', endpoint)
-        self.jwt_token = os.environ.get('JWT_TOKEN', admin_secret)
+        
+        # Try to get JWT token from env
+        self.jwt_token = os.environ.get('JWT_TOKEN')
+        print("heres the jwt token",self.jwt_token)
+        
+        # Try to get admin secret from args or env
+        self.admin_secret = admin_secret or os.environ.get('HASURA_GRAPHQL_ADMIN_SECRET')
+        print("heres the secret",self.admin_secret)
+        
         self._HEADERS = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.jwt_token or ''}", 
             "X-Hasura-Role": self.role
         }
+
+        
+        # Add appropriate auth header
+        if self.jwt_token:
+            self._HEADERS["Authorization"] = f"Bearer {self.jwt_token}"
+        elif self.admin_secret:
+            self._HEADERS["X-Hasura-Admin-Secret"] = self.admin_secret
+            # When using admin secret, we might not need the role header, or it might override permission checks
+            # But keeping it allows testing role-based permissions if the secret allows it
+        else:
+            print("⚠️ No authentication credentials found for Hasura Client")
 
     def _execute_graphql(self, query: str) -> Dict[str, Any]:
         """Helper function to execute a GraphQL query against the endpoint."""
@@ -360,6 +470,52 @@ class HasuraClient(GraphQLClientBase):
             return {"success": True, "data": all_data}
         else:
             return {"success": False, "error": "One or more table queries failed.", "data": all_data}
+    
+    def execute_graphql_query(self, query_string: str) -> Dict[str, Any]:
+        """
+        Execute a raw GraphQL query string.
+        
+        Args:
+            query_string: GraphQL query string
+            
+        Returns:
+            Query result with success status and data
+        """
+        try:
+            result = self._execute_graphql(query_string)
+            
+            # Extract data from result
+            if "data" not in result:
+                return {
+                    "success": False,
+                    "error": "No data in GraphQL response",
+                    "data": None
+                }
+            
+            # The data will be nested under the table name
+            # Extract the actual data
+            data = result["data"]
+            
+            # Find the first non-null key (the table name)
+            table_data = None
+            for key, value in data.items():
+                if value is not None:
+                    table_data = value
+                    break
+            
+            return {
+                "success": True,
+                "error": None,
+                "data": table_data,
+                "query_type": "custom_query"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error executing GraphQL query: {str(e)}",
+                "data": None
+            }
 
 
 def get_graphql_client() -> GraphQLClientBase:
