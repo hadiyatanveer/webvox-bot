@@ -1,0 +1,14 @@
+Analyze this database table and provide a brief, clear description of its purpose.
+
+**Table Name:** {table_name}
+
+**Fields:**
+{field_info}
+
+**Relationships:**
+{rel_info}
+
+Provide a single-sentence description (max 15 words) explaining what data this table stores.
+Format: "Contains [data type] with [key characteristics]"
+
+Description:
