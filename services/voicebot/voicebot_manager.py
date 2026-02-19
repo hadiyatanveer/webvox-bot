@@ -105,14 +105,17 @@ class VoiceBotManager:
         }
 
     def _route_intent(self, category: str, user_input: str, intent_data: dict, entities: dict) -> dict:
-        if category == "retrieve_information":
+        if category == "information":
             return self._handle_retrieve_information(user_input, intent_data, entities)
         
-        elif category == "perform_action":
+        elif category == "action":
             return self._handle_action_not_supported()
         
-        elif category == "view_webpage":
+        elif category == "webpage":
             return self._handle_webpage_not_supported()
+        
+        elif category == "greeting":
+            return self._handle_greeting()
         
         else:
             return self._handle_unknown(user_input, intent_data)
@@ -161,6 +164,25 @@ class VoiceBotManager:
             "metadata": {"reason": "webpage_navigation_not_implemented"}
         }
 
+    def _handle_greeting(self) -> dict:
+        """Handle greetings and conversational openers with a warm introduction."""
+        print("   👋 Greeting detected, sending introduction")
+        response = (
+            "Hey there! 👋 I'm WebVox, your voice assistant for this restaurant. "
+            "I'm here to make your experience easier and hands-free!\n\n"
+            "Here's what I can help you with:\n"
+            "• **Explore the menu** — e.g., 'What pizzas do you have?' or 'Tell me about the Seafood Platter'\n"
+            "• **Check prices** — e.g., 'How much is the Chicken Alfredo Pasta?'\n"
+            "• **Dietary info** — e.g., 'Do you have vegetarian options?'\n"
+            "• **Restaurant policies** — e.g., 'What is your refund policy?' or 'What are your delivery hours?'\n\n"
+            "Just ask me anything and I'll do my best to help! 😊"
+        )
+        return {
+            "response": response,
+            "status": "greeting",
+            "metadata": {}
+        }
+
     def _handle_unknown(self, user_input: str, intent_data: dict) -> dict:
         """Handle unknown intents with clarification."""
         print("   ❓ Unknown intent, requesting clarification")
@@ -170,7 +192,15 @@ class VoiceBotManager:
             questions = "\n".join(f"• {q}" for q in clarification_questions)
             response = f"I'd like to help you, but I'm not sure what you're looking for. Could you clarify?\n{questions}"
         else:
-            response = "I'm not sure I understand. Could you rephrase your request? For example, you can ask about menu items, prices, ingredients, or our policies."
+            response = (
+                "I'm here to help you with anything related to our restaurant! 😊 "
+                "Here are some things you can try:\n"
+                "• Ask about our menu — e.g., 'What pizzas do you have?' or 'Tell me about the Seafood Platter'\n"
+                "• Check prices — e.g., 'How much is the Chicken Alfredo Pasta?'\n"
+                "• Learn about our policies — e.g., 'What is your refund policy?' or 'What are your delivery hours?'\n"
+                "• Browse categories — e.g., 'Show me all desserts' or 'Do you have vegetarian options?'\n\n"
+                "Just ask away and I'll do my best to help!"
+            )
         
         return {
             "response": response,
