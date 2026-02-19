@@ -15,6 +15,9 @@ pakage-lock.json
 # Random files
 notes.txt
 
+# logs
+logs/
+
 # Deprecated agents and data
 services/graphql/mock_data.py
 services/graphql/entity_router.py
