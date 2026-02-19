@@ -4,7 +4,6 @@ __pycache__/
 # Environment variables.
 .env
 venv/
-config.yaml
 
 # Test files.
 tests/
@@ -16,3 +15,12 @@ pakage-lock.json
 # Random files
 notes.txt
 
+# Deprecated agents and data
+services/graphql/mock_data.py
+services/graphql/entity_router.py
+services/graphql/database_agent.py
+
+# Config files
+config.yaml
+debug_config.yaml
+debug/
