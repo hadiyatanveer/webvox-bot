@@ -257,10 +257,17 @@ class QueryPlannerAgent:
             if not cleaned_fields:
                 cleaned_fields = ['id']
             
+            # Recursively clean nested relationships (for multi-hop queries)
+            nested_relationships = self._clean_relationships(
+                rel.get('relationships', []),
+                rel_info.remote_table
+            )
+            
             cleaned.append({
                 'name': rel_name,
                 'fields': cleaned_fields,
-                'where': rel.get('where', {})
+                'where': rel.get('where', {}),
+                'relationships': nested_relationships
             })
         
         return cleaned

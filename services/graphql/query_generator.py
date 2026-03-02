@@ -44,6 +44,7 @@ class QueryGenerator:
     
     def __init__(self):
         pass
+    
     def generate_query(self, query_plan: QueryPlan) -> str:
         """
         Generate a complete GraphQL query from a QueryPlan.
@@ -116,40 +117,47 @@ class QueryGenerator:
     def _build_selection(
         self,
         fields: List[str],
-        relationships: List[Dict[str, Any]]
+        relationships: List[Dict[str, Any]],
+        indent: int = 4
     ) -> str:
         """
-        Build the field selection part of the query.
+        Build the field selection part of the query (recursive for multi-hop).
         
         Args:
             fields: List of field names to select
-            relationships: List of relationship selections
+            relationships: List of relationship selections (may contain nested relationships)
+            indent: Current indentation level (spaces)
             
         Returns:
             Formatted field selection string
         """
+        pad = " " * indent
         lines = []
         
         # Add regular fields
         for field in fields:
-            lines.append(f"    {field}")
+            lines.append(f"{pad}{field}")
         
-        # Add nested relationship queries
+        # Add nested relationship queries (recursively)
         for rel in relationships:
             rel_name = rel.get('name')
             rel_fields = rel.get('fields', ['id'])
             rel_where = rel.get('where', {})
+            rel_nested = rel.get('relationships', [])
             
             if rel_where:
                 where_str = self.build_where_clause(rel_where)
-                lines.append(f"    {rel_name}(where: {where_str}) {{")
+                lines.append(f"{pad}{rel_name}(where: {where_str}) {{")
             else:
-                lines.append(f"    {rel_name} {{")
+                lines.append(f"{pad}{rel_name} {{")
             
-            for field in rel_fields:
-                lines.append(f"      {field}")
+            # Recurse: build selection for the nested level
+            nested_selection = self._build_selection(
+                rel_fields, rel_nested, indent + 2
+            )
+            lines.append(nested_selection)
             
-            lines.append("    }")
+            lines.append(f"{pad}}}")
         
         return "\n".join(lines)
     
