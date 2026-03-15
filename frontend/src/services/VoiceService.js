@@ -1,8 +1,8 @@
 // src/services/VoiceService.js
 class VoiceService {
   constructor() {
-    this.chatApiUrl = 'http://localhost:8001'; 
-    this.utilityApiUrl = 'http://localhost:8000'; 
+    this.chatApiUrl = 'http://localhost:8001'; // Sahrish's Logic
+    this.utilityApiUrl = 'http://localhost:8000'; // TTS & Translation
     this.sessionId = this.generateSessionId();
   }
 
@@ -41,13 +41,7 @@ class VoiceService {
         })
       });
 
-      if (!response.ok) {
-        console.error('Backend returned status:', response.status); // <--- ADD THIS
-        // Try to read the body for more info (if the server sends JSON errors)
-        const errorText = await response.text(); 
-        console.error('Backend error details:', errorText); // <--- AND THIS
-        throw new Error('Backend connection failed');
-      }
+      if (!response.ok) throw new Error('Backend connection failed');
       const data = await response.json();
       return { success: true, response: data.response };
     } catch (error) {
@@ -55,25 +49,44 @@ class VoiceService {
     }
   }
 
-  // --- 3. HYBRID TTS (Urdu & Arabic) ---
+  // --- 3. AZURE NEURAL TTS ---
   async getBackendAudio(text, lang) {
     try {
-      // Map full codes to 2-letter codes for gTTS (e.g., 'ar-SA' -> 'ar')
-      const shortLang = lang.split('-')[0]; 
-      
+      // Send the full locale (e.g., 'en-US', 'ur-IN') to map to specific Azure voices
       const response = await fetch(`${this.utilityApiUrl}/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, lang: shortLang })
+        body: JSON.stringify({ text, lang: lang })
       });
 
-      if (!response.ok) throw new Error('Backend TTS failed');
+      if (!response.ok) throw new Error('Backend Azure TTS failed');
       const audioBlob = await response.blob();
       return { success: true, audioUrl: URL.createObjectURL(audioBlob) };
     } catch (error) {
       return { success: false, error: error.message };
     }
   }
-}
+  // --- 4. AZURE STT (New) ---
+  async transcribeAudio(audioBlob, lang) {
+    try {
+      const formData = new FormData();
+      // Append the blob. The backend will convert it regardless of the browser's native mimeType
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('lang', lang);
 
-export default new VoiceService();
+      const response = await fetch(`${this.utilityApiUrl}/api/stt`, {
+        method: 'POST',
+        // Note: Do NOT set 'Content-Type' when sending FormData in React; the browser sets the boundary automatically.
+        body: formData 
+      });
+
+      if (!response.ok) throw new Error('Backend Azure STT failed');
+      return await response.json();
+    } catch (error) {
+      console.error('STT Service Error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+}
+const voiceServiceInstance = new VoiceService();
+export default voiceServiceInstance;

@@ -3,18 +3,42 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import VoiceInput from './VoiceInput';
 import './ChatInput.css';
 
+// --- Inline SVG Icons ---
+const SendIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
+const SpinnerIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    className="icon-spin">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+
 const ChatInput = ({ onSendMessage, isLoading, language, onLanguageChange }) => {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef(null);
 
   const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (message.trim() && !isLoading && !isListening) {
       await onSendMessage(message.trim(), 'text');
       setMessage('');
     }
   }, [message, isLoading, isListening, onSendMessage]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  }, [handleSubmit]);
 
   const handleVoiceInput = useCallback(async (text, listening, isComplete = false) => {
     setIsListening(listening);
@@ -27,59 +51,79 @@ const ChatInput = ({ onSendMessage, isLoading, language, onLanguageChange }) => 
   }, [onSendMessage]);
 
   const handleTextChange = (e) => {
-     if (!isListening) setMessage(e.target.value);
+    if (!isListening) setMessage(e.target.value);
   };
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = scrollHeight + 'px';
+
+      // Toggle scrollbar if it hits max-height
+      if (scrollHeight > 100) {
+        textareaRef.current.style.overflowY = 'auto';
+        textareaRef.current.style.scrollbarWidth = 'thin';
+      } else {
+        textareaRef.current.style.overflowY = 'hidden';
+      }
     }
   }, [message]);
 
-  return (
-    <div className="chat-input-container">
-      <form onSubmit={handleSubmit} className="chat-input-form">
-        <div className="input-wrapper">
-          
-          <select 
-            className="language-select"
-            value={language}
-            onChange={(e) => onLanguageChange(e.target.value)}
-            disabled={isListening || isLoading}
-          >
-            <option value="en-US">🇺🇸 EN</option>
-            <option value="ur-IN">🇵🇰 UR</option>
-            <option value="ar-SA">🇸🇦 AR</option>
-          </select>
 
+
+  const placeholders = {
+    'en-US': 'Type a message…',
+    'ur-IN': 'اپنا پیغام یہاں ٹائپ کریں',
+    'ar-SA': 'اكتب رسالتك هنا...'
+  };
+
+  return (
+    <div className="chat-input-toolbar">
+      <div className="input-row-primary">
+        <div className={`input-pill ${isListening ? 'listening' : ''}`}>
           <textarea
             ref={textareaRef}
             value={message}
             onChange={handleTextChange}
-            placeholder={isListening ? "Listening..." : "Type or speak..."}
+            onKeyDown={handleKeyDown}
+            placeholder={isListening ? 'Listening…' : (placeholders[language] || placeholders['en-US'])}
             disabled={isLoading}
-            className={`message-input ${isListening ? 'listening-mode' : ''}`}
             rows={1}
-            dir={language === 'ar-SA' || language === 'ur' ? 'rtl' : 'ltr'}
+            dir={language === 'ar-SA' || language === 'ur-IN' ? 'rtl' : 'ltr'}
           />
-          
-          <div className="input-actions">
-            <VoiceInput 
+          <div className="pill-actions">
+            <VoiceInput
               onVoiceInput={handleVoiceInput}
               disabled={isLoading}
               language={language}
             />
             <button
-              type="submit"
+              onClick={handleSubmit}
               disabled={!message.trim() || isLoading || isListening}
-              className="send-button"
+              className="send-arrow-btn"
+              title="Send"
             >
-              {isLoading ? '⏳' : '📤'}
+              {isLoading ? <SpinnerIcon /> : <SendIcon />}
             </button>
           </div>
         </div>
-      </form>
+      </div>
+
+      {!isListening && (
+        <div className="input-row-utility">
+          <select
+            className="lang-minimal-select"
+            value={language}
+            onChange={(e) => onLanguageChange(e.target.value)}
+            disabled={isLoading}
+          >
+            <option value="en-US">🇺🇸 EN</option>
+            <option value="ur-IN">🇵🇰 UR</option>
+            <option value="ar-SA">🇸🇦 AR</option>
+          </select>
+        </div>
+      )}
     </div>
   );
 };

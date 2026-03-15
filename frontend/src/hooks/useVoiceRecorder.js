@@ -10,23 +10,14 @@ const useVoiceRecorder = () => {
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const intervalRef = useRef(null);
-  const audioContextRef = useRef(null);
 
   const startRecording = useCallback(async () => {
     try {
       setError(null);
       setRecordingTime(0);
 
-      // Request microphone access with specific constraints
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 16000, // Match backend expectations
-          channelCount: 1,    // Mono
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      // Request raw microphone access with ZERO constraints
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       streamRef.current = stream;
       chunksRef.current = [];
@@ -56,8 +47,7 @@ const useVoiceRecorder = () => {
       }
 
       const recorder = new MediaRecorder(stream, { 
-        mimeType: selectedMimeType,
-        audioBitsPerSecond: 16000 // Lower bitrate for better compatibility
+        mimeType: selectedMimeType
       });
 
       mediaRecorderRef.current = recorder;

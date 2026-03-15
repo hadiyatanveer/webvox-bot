@@ -1,77 +1,83 @@
 // src/components/VoiceInput.js
-import React, { useCallback, useEffect, useRef } from 'react';
-import useWebSpeechRecognition from '../hooks/useWebSpeechRecognition';
+import React, { useState } from 'react';
+import useVoiceRecorder from '../hooks/useVoiceRecorder';
+import VoiceService from '../services/VoiceService';
 import './VoiceInput.css';
 
+// --- Inline SVG Icons ---
+const MicIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+    <path d="M19 10v2a7 7 0 01-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="23" />
+    <line x1="8" y1="23" x2="16" y2="23" />
+  </svg>
+);
+
+const StopIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+    fill="currentColor" stroke="none">
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+  </svg>
+);
+
+const SpinnerIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    className="icon-spin">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+
 const VoiceInput = ({ onVoiceInput, disabled, language = 'en-US' }) => {
-  // We use a ref to track if we were just listening, 
-  // so we can detect the specific moment it stops.
-  const wasListeningRef = useRef(false);
+  const { isRecording, error, startRecording, stopRecording } = useVoiceRecorder();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleTranscriptChange = useCallback((text, isFinal) => {
-    onVoiceInput(text, false);
-  }, [onVoiceInput]);
+  const handleVoiceToggle = async () => {
+    if (isRecording) {
+      const audioBlob = await stopRecording();
+      setIsProcessing(true);
 
-  const {
-    transcript,
-    isListening,
-    isSupported,
-    error,
-    startListening,
-    stopListening
-  } = useWebSpeechRecognition({
-    onTranscriptChange: handleTranscriptChange,
-    language: language,
-    silenceTimeout: 2000 // Stop after 2 seconds of silence
-  });
-
-  // AUTO-SEND LOGIC:
-  // Detect when isListening switches from TRUE -> FALSE
-  useEffect(() => {
-    if (wasListeningRef.current && !isListening) {
-      // Logic: We were listening, now we stopped (due to silence or click)
-      // If we have text, send it!
-      if (transcript.trim()) {
-        console.log("📦 Auto-sending message:", transcript);
-        onVoiceInput(transcript.trim(), false, true); // isComplete = true
+      try {
+        const result = await VoiceService.transcribeAudio(audioBlob, language);
+        if (result.success && result.text) {
+          onVoiceInput(result.text, false, true);
+        } else {
+          console.error('STT Error:', result.error);
+        }
+      } catch (err) {
+        console.error('Transcription failed:', err);
+      } finally {
+        setIsProcessing(false);
       }
-    }
-    // Update ref for next render
-    wasListeningRef.current = isListening;
-  }, [isListening, transcript, onVoiceInput]);
-
-  const handleVoiceToggle = () => {
-    if (isListening) {
-      // Manual stop (user clicked button)
-      stopListening();
-      // The useEffect above will handle the sending when isListening becomes false
     } else {
-      startListening();
+      await startRecording();
     }
   };
 
-  if (!isSupported) return null;
+  const getTitle = () => {
+    if (isProcessing) return 'Processing audio…';
+    if (isRecording) return 'Click to stop and send';
+    return `Speak (${language})`;
+  };
 
   return (
     <div className="voice-input">
       <button
-        className={`voice-button ${isListening ? 'listening' : ''}`}
+        className={`voice-button ${isRecording ? 'listening' : ''} ${isProcessing ? 'processing' : ''}`}
         onClick={handleVoiceToggle}
-        disabled={disabled}
-        title={isListening ? 'Listening... (Stop speaking to send)' : `Speak (${language})`} 
+        disabled={disabled || isProcessing}
+        title={getTitle()}
+        aria-label={getTitle()}
         type="button"
       >
-        {isListening ? '🛑' : '🎤'}
+        {isProcessing ? <SpinnerIcon /> : isRecording ? <StopIcon /> : <MicIcon />}
       </button>
 
-      {/* Visual Feedback for Auto-Stop */}
-      {isListening && (
-        <div className="transcript-preview">
-           Listening... (Auto-send in 2s)
-        </div>
-      )}
 
-      {error && <div className="voice-error-small">{error}</div>}
+
+      {error && <div className="voice-error">{error}</div>}
     </div>
   );
 };
