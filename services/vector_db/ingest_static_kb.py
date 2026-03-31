@@ -223,6 +223,7 @@ def clear_static_kb():
 if __name__ == "__main__":
     import sys
     
+    print ("\n🚀 Starting Static KB Ingestion Script")
     if len(sys.argv) > 1 and sys.argv[1] == "--clear":
         clear_static_kb()
     else:

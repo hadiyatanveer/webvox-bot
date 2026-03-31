@@ -1,25 +1,32 @@
+# --- AI & LLM ---
 langchain==0.3.27
 langchain-groq==0.3.7
 langchain-community==0.3.30
+langgraph
+groq
+google-generativeai
 
+# --- Vector DB & Embeddings ---
+faiss-cpu
+transformers==4.41.0
+sentence-transformers
+numpy
+tf-keras
+
+# --- Backend API ---
 fastapi==0.118.0
 uvicorn==0.37.0
 pydantic==2.11
 python-multipart==0.0.9
-python-dotenv
 requests
+python-dotenv
 
-groq
-faiss-cpu
-transformers==4.41.0
-sentence-transformers
-google-generativeai
-
-numpy
-pyyaml
-
-soundfile
-
-gTTS
-pyttsx3
+# --- Voice & Audio (Azure) ---
+azure-cognitiveservices-speech
+pydub
 deep-translator
+
+# --- Document Ingestion ---
+PyPDF2
+pdfplumber
+pyyaml

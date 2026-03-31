@@ -1,3 +1,13 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# Silences the oneDNN info message
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+# Silences the TensorFlow deprecation warnings (0 = all logs, 1 = filter INFO, 2 = filter WARNINGS, 3 = filter ERRORS)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
 import io
 import uvicorn
 
