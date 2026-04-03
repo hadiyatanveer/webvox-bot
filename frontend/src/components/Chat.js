@@ -50,7 +50,9 @@ const ThemeIcon = () => (
   </svg>
 );
 
-const Chat = ({ theme: initialTheme = {} }) => {
+const DEFAULT_THEME = {};
+
+const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -91,7 +93,7 @@ const Chat = ({ theme: initialTheme = {} }) => {
       agentColor: agentColorParam || initialTheme.agentColor,
       micColor: micColorParam || initialTheme.micColor
     });
-  }, [initialTheme]);
+  }, [JSON.stringify(initialTheme)]);
 
   // Handle theme mode (light/dark) logic
   const toggleTheme = () => setThemeMode(prev => prev === 'light' ? 'dark' : 'light');

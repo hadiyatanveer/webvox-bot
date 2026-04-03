@@ -1,8 +1,8 @@
 // src/services/VoiceService.js
 class VoiceService {
   constructor() {
-    this.chatApiUrl = 'http://localhost:8001'; // Sahrish's Logic
-    this.utilityApiUrl = 'http://localhost:8000'; // TTS & Translation
+    // Single unified backend URL
+    this.apiUrl = 'http://localhost:8000'; 
     this.sessionId = this.generateSessionId();
   }
 
@@ -13,7 +13,8 @@ class VoiceService {
   // --- 1. TRANSLATION (New) ---
   async translateText(text, targetLang) {
     try {
-      const response = await fetch(`${this.utilityApiUrl}/api/translate`, {
+      // Changed this.utilityApiUrl to this.apiUrl
+      const response = await fetch(`${this.apiUrl}/api/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, target_lang: targetLang })
@@ -31,7 +32,8 @@ class VoiceService {
   // --- 2. SEND CHAT (Existing) ---
   async sendChatMessage(text) {
     try {
-      const response = await fetch(`${this.chatApiUrl}/api/v1/chat`, {
+      // Changed this.chatApiUrl to this.apiUrl
+      const response = await fetch(`${this.apiUrl}/api/v1/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,8 +54,8 @@ class VoiceService {
   // --- 3. AZURE NEURAL TTS ---
   async getBackendAudio(text, lang) {
     try {
-      // Send the full locale (e.g., 'en-US', 'ur-IN') to map to specific Azure voices
-      const response = await fetch(`${this.utilityApiUrl}/api/tts`, {
+      // Changed this.utilityApiUrl to this.apiUrl
+      const response = await fetch(`${this.apiUrl}/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, lang: lang })
@@ -66,17 +68,17 @@ class VoiceService {
       return { success: false, error: error.message };
     }
   }
+  
   // --- 4. AZURE STT (New) ---
   async transcribeAudio(audioBlob, lang) {
     try {
       const formData = new FormData();
-      // Append the blob. The backend will convert it regardless of the browser's native mimeType
       formData.append('audio', audioBlob, 'recording.webm');
       formData.append('lang', lang);
 
-      const response = await fetch(`${this.utilityApiUrl}/api/stt`, {
+      // Changed this.utilityApiUrl to this.apiUrl
+      const response = await fetch(`${this.apiUrl}/api/stt`, {
         method: 'POST',
-        // Note: Do NOT set 'Content-Type' when sending FormData in React; the browser sets the boundary automatically.
         body: formData 
       });
 
@@ -88,5 +90,6 @@ class VoiceService {
     }
   }
 }
+
 const voiceServiceInstance = new VoiceService();
 export default voiceServiceInstance;

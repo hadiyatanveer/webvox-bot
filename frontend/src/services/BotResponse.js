@@ -1,6 +1,6 @@
 export async function sendMessageToBot(input) {
-    const apiUrl = "http://localhost:8001";
-    const response = await fetch(`${apiUrl}/webvox/chat`, { 
+    const apiUrl = "http://localhost:8000";
+    const response = await fetch(`${apiUrl}/api/v1/chat`, { 
       method: "POST",
       headers: {  "Content-Type": "application/json"  },
       body: JSON.stringify({  message: input, session_id: "default" })
