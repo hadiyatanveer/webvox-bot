@@ -13,6 +13,9 @@ pakage-lock.json
 # Random files
 notes.txt
 
+# Test files.
+tests/
+
 # logs
 logs/
 
@@ -22,9 +25,12 @@ services/graphql/entity_router.py
 services/graphql/database_agent.py
 
 # Config files
-config.yaml
+# config.yaml
 debug_config.yaml
 debug/
 
 # Everything starting with .
 .*
+
+# Schema cache (auto-generated, not for version control)
+data/schema_cache.json
