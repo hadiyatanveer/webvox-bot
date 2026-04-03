@@ -286,7 +286,7 @@ class HasuraClient(GraphQLClientBase):
         self.endpoint = os.environ.get('HASURA_ENDPOINT', endpoint)
         
         # Try to get JWT token from env
-        self.jwt_token = os.environ.get('JWT_TOKEN')
+        self.jwt_token = os.environ.get('USER_JWT_TOKEN')
         print("heres the jwt token",self.jwt_token)
         
         # Try to get admin secret from args or env

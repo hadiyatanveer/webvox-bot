@@ -1,14 +1,25 @@
+import os
+import io
+import tempfile
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
+
+# Silences the oneDNN info message
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+# Silences the TensorFlow deprecation warnings (0 = all logs, 1 = filter INFO, 2 = filter WARNINGS, 3 = filter ERRORS)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 from fastapi import FastAPI, Response, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from deep_translator import GoogleTranslator
 import azure.cognitiveservices.speech as speechsdk
-import os
-import tempfile
 from pydub import AudioSegment
-from dotenv import load_dotenv
+import uvicorn
 
-load_dotenv()  # Load environment variables from .env file
+# Include the router added in the langgraph branch
+from backend.routes.voicebot import router_voicebot
 
 app = FastAPI()
 
@@ -24,7 +35,8 @@ AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 
 if not AZURE_SPEECH_KEY or not AZURE_SPEECH_REGION:
-    raise ValueError("⚠️ Azure Speech credentials not found. Please check your .env file.")
+    # Changed from raise ValueError to a print so the app doesn't crash if you are just testing the router
+    print("⚠️ Azure Speech credentials not found. Please check your .env file.")
 
 class TTSRequest(BaseModel):
     text: str
@@ -148,7 +160,9 @@ async def speech_to_text(
             except Exception as e:
                 print(f"Warning: Could not remove {temp_wav}: {e}")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Include the langgraph router
+app.include_router(router_voicebot)
 
+if __name__ == "__main__":
+    # Uses the langgraph approach to run via module string (allows for hot-reloading)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

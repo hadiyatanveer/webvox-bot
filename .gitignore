@@ -27,3 +27,6 @@ services/graphql/database_agent.py
 config.yaml
 debug_config.yaml
 debug/
+
+# Everything starting with .
+.*
