@@ -64,21 +64,26 @@ class SchemaIntrospector:
     Caches schema information to avoid repeated API calls.
     """
     
-    def __init__(self, client, cache_ttl: int = 300):
+    def __init__(self, client, cache_ttl: int = None):
         """
         Initialize schema introspector.
         
         Args:
             client: GraphQL client instance (must have _execute_graphql method for Hasura)
-            cache_ttl: Cache time-to-live in seconds (default: 5 minutes)
+            cache_ttl: Cache time-to-live in seconds. If None, reads from
+                       graphql.schema_cache.ttl_seconds in config.yaml (default: 3600).
         """
         self.client = client
-        self.cache_ttl = cache_ttl
+        self.config = get_config()
+        # Use caller-supplied TTL or read from config so this in-memory cache
+        # stays in sync with the disk cache in SchemaAnalyzer.
+        self.cache_ttl = cache_ttl if cache_ttl is not None else self.config.get(
+            "graphql.schema_cache.ttl_seconds", 3600
+        )
         self._schema_cache: Optional[Dict[str, TableInfo]] = None
         self._cache_timestamp: Optional[float] = None
         self._is_mock = hasattr(client, '_table_schemas')  # Detect mock client
-        self.config = get_config()
-        self.force_refresh_schema = self.config.get("graphql.force_refresh_schema")
+        self.force_refresh_schema = self.config.get("graphql.force_refresh_schema", False)
     
     def introspect_schema(self) -> Dict[str, TableInfo]:
         """
@@ -92,7 +97,7 @@ class SchemaIntrospector:
         """
         # Check cache validity
         if not self.force_refresh_schema and self._is_cache_valid():
-            print("  📦 Using cached schema:")
+            # print("  📦 Using cached schema:")
             #print(self._schema_cache)
             return self._schema_cache
         
