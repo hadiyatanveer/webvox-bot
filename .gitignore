@@ -4,9 +4,7 @@ __pycache__/
 # Environment variables.
 .env
 venv/
-
-# Test files.
-tests/
+.venv/
 
 # Node modules.
 node_modules/
