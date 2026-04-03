@@ -1,0 +1,144 @@
+# WebVox Configuration Example
+# Copy this file to config.yaml and update values as needed
+# This file contains all configurable settings for the RAG-based voice accessibility system
+
+llm:
+  provider: "groq"             
+  model_name: "openai/gpt-oss-120b" #meta-llama/llama-4-maverick-17b-128e-instruct" #"llama-3.1-8b-instant"
+  temperature: 0.1
+
+providers:
+  groq:
+    api_key: null              
+  gemini:
+    api_key: null              
+
+# Intent Detection Settings
+intent_detection:
+  confidence_threshold: 0.7    
+  max_clarification_attempts: 3
+
+# Vector Database Settings
+vector_db:
+  # Embedding model configuration
+  embedding:
+    model_name: "all-MiniLM-L6-v2"
+    dimension: 384             
+  
+  # Similarity thresholds
+  similarity_threshold: 0.65   
+  
+  # Chunking settings
+  chunking:
+    min_tokens: 50
+    max_tokens: 2048
+    overlap_tokens: 10
+  
+  # TTL and storage settings
+  ttl:
+    default_days: 3             # Default TTL for cached vectors
+    static_kb_days: 30          # TTL for static knowledge base
+    dynamic_db_days: 1          # TTL for dynamic DB results
+  
+  # Storage policy
+  storage_policy:
+    min_response_size_bytes: 20   # Only cache responses > 2KB
+    high_frequency_entities:
+      - "products"
+      - "orders"
+      - "policies"
+      - "menu_items"
+    exclude_entities:               # Never cache these
+      - "user_address"
+      - "payment_info"
+      - "personal_data"
+
+# Static Knowledge Base
+static_kb:
+  enabled: false
+  documents_path: "data/static_kb/"
+  files:
+    - "menu.pdf"                # Main menu document
+
+# GraphQL Layer Settings
+graphql:
+  # Default to mock mode for development
+  mode: "hasura"
+  force_refresh_schema: false   # Set to true to bypass cache and always fetch live schema
+  
+  # File-based schema context cache
+  # Prevents repeated LLM API calls for table descriptions across restarts and prompts.
+  schema_cache:
+    enabled: true
+    ttl_seconds: 200          # How long (in seconds) before the cache is considered stale and rebuilt
+    cache_file: "data/schema_cache.json"  # Path relative to project root
+  
+  hasura:
+    endpoint: http://localhost:8080/v1/graphql
+    admin_secret: 
+  
+  directus:
+    endpoint: null
+    access_token: null
+  
+  # Response normalization
+  normalize:
+    remove_system_fields:
+      - "_id"
+      - "__typename"
+      - "created_at"
+      - "updated_at"
+    pii_fields:               
+      - "email"
+      - "phone"
+      - "address"
+      - "password"
+      - "ssn"
+      - "credit_card"
+
+# RAG Pipeline Settings
+rag:
+  # Context sources - control which sources to use
+  context_sources:
+    use_static_kb: false           # Use static knowledge base (PDFs, docs)
+    use_dynamic_db: false          # Use cached GraphQL results
+    use_fresh_db: true            # Use fresh GraphQL queries (slow path)
+    combine_sources: true         # Combine all sources or use best match only
+  
+  # Fast path settings
+  fast_path:
+    max_results: 5              # Max vector results to consider
+    use_reranking: false        # Enable reranking for better results
+  
+  # Slow path settings
+  slow_path:
+    timeout_seconds: 10
+    cache_results: false         # Cache results in vector DB
+
+# Response Generation
+response:
+  max_context_length: 10000      # Max tokens for context
+  include_sources: true         # Include source references
+  
+  # Fallback messages
+  fallback:
+    no_results: "I couldn't find the information you're looking for. Could you try rephrasing your question?"
+    service_error: "I'm having trouble accessing the information right now. Please try again in a moment."
+    action_not_supported: "I can currently only help with information retrieval. Actions like ordering or booking are not yet available."
+    webpage_not_supported: "Webpage navigation is not yet available. Please ask me about specific information instead."
+
+# Clarification Settings
+clarification:
+  triggers:
+    low_confidence: true
+    insufficient_entities: true
+    conflicting_entities: true
+    ambiguous_action: true
+    low_similarity: true
+    multiple_matches: true
+    no_matches: true
+  
+  templates:
+    general: "Could you clarify what you want to access? For example: menu items, your orders, or something else?"
+    multiple_matches: "I found several matches—could you be more specific about which one you mean?"
+    no_matches: "I couldn't locate information about that. Could you provide additional details?"
