@@ -67,48 +67,67 @@ def vector_search_node(state: GraphState) -> Dict[str, Any]:
     }
 
 def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
-    """Slow Path: Plans and executes a Hasura GraphQL query."""
+    """Slow Path: Plans and executes a Hasura GraphQL query with retries."""
     print("---NODE: GRAPHQL DATABASE (SLOW PATH)---")
     user_input = state["user_input"]
     intent_data = state["intent_data"]
+    
+    # Get current retry state
+    retries = state.get("graphql_retries", 0)
+    prev_error = state.get("graphql_error")
+    prev_query = state.get("previous_graphql_query")
     
     planner = get_query_planner_agent()
     client = get_graphql_client()
     handler = get_response_handler()
     
     try:
-        # 1. Plan the query using the LLM schema analyzer
+        # Pass previous errors to the planner
         query_plan, graphql_query = planner.plan_query(
             user_input, 
-            intent_data.get("entities")
+            intent_data.get("entities"),
+            previous_error=prev_error,
+            previous_query=prev_query
         )
         
-        # ---> RESTORED VISIBILITY <---
-        print(f"  → Generated GraphQL query:\n{graphql_query}")
+        print(f"  → Generated GraphQL query (Attempt {retries + 1}):\n{graphql_query}")
         
-        # 2. Execute the query against Hasura
         raw_response = client.execute_graphql_query(graphql_query)
         
-        # ---> RESTORED VISIBILITY <---
+        # --- Explicitly trigger retry if Hasura returns an error ---
+        if not raw_response.get("success"):
+            raise Exception(raw_response.get("error", "Unknown Hasura Error"))
+            
         print(f"  → Raw GraphQL Query response: {raw_response}")
         
-        # 3. Normalize the JSON response into readable text
         normalized_context = handler.normalize(raw_response, query_plan.primary_table)
-        
         context_string = normalized_context.get("text", str(normalized_context))
         
-        # Give generator.py EXACTLY what it demands, without the bloated raw JSON
         rag_context = {
             "status": "success",               
-            "context": context_string,     # <--- Now passing just the text!
+            "context": context_string,     
             "source_path": "graphql_database"
         }
         
-        return {"rag_context": rag_context}
+        # Success! Clear errors and advance the retry counter
+        return {
+            "rag_context": rag_context,
+            "graphql_error": None,
+            "graphql_retries": retries + 1,
+            "previous_graphql_query": graphql_query
+        }
         
     except Exception as e:
-        print(f"GraphQL execution failed: {e}")
-        return {"error": str(e), "rag_context": None}
+        error_msg = str(e)
+        print(f"  ⚠️ GraphQL execution failed: {error_msg}")
+        
+        # Return the error to the state so the graph edge can catch it
+        return {
+            "graphql_error": error_msg,
+            "graphql_retries": retries + 1,
+            "previous_graphql_query": graphql_query if 'graphql_query' in locals() else None,
+            "rag_context": None
+        }
     
 def generate_response_node(state: GraphState) -> Dict[str, Any]:
     """Synthesizes the final voice response."""
