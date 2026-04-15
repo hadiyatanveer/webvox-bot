@@ -1,5 +1,6 @@
-// src/components/ChatMessage.js
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './ChatMessage.css';
 
 // --- Inline SVG Icons ---
@@ -30,8 +31,8 @@ const ChatMessage = ({ message, isUser }) => {
         <div className="message-avatar" aria-hidden="true">
           {isUser ? <UserIcon /> : <BotIcon />}
         </div>
-        <div className="message-bubble">
-          <p>{message}</p>
+        <div className="message-text">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message}</ReactMarkdown>
         </div>
       </div>
     </div>

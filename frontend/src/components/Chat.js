@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceService from '../services/VoiceService';
+import AIBot from './AIBot';
 import './Chat.css';
 
 // --- Inline SVG Icons ---
@@ -51,6 +52,7 @@ const ThemeIcon = () => (
 );
 
 const DEFAULT_THEME = {};
+const HELLOS = ["Hello", "السلام علیکم", "مرحباً"];
 
 const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
   const [messages, setMessages] = useState([]);
@@ -60,7 +62,16 @@ const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
   const [themeMode, setThemeMode] = useState('light'); // 'light' or 'dark'
   const [widgetMode, setWidgetMode] = useState('full'); // 'full' or 'widget'
   const [dynamicTheme, setDynamicTheme] = useState({});
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [helloIndex, setHelloIndex] = useState(0);
   const [chatBotName, setChatBotName] = useState('WebVox Bot');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHelloIndex((prev) => (prev + 1) % HELLOS.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, []);
 
   const messagesEndRef = useRef(null);
   const currentAudioRef = useRef(null);
@@ -93,7 +104,16 @@ const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
       agentColor: agentColorParam || initialTheme.agentColor,
       micColor: micColorParam || initialTheme.micColor
     });
-  }, [JSON.stringify(initialTheme)]);
+  }, [
+    initialTheme.primaryColor,
+    initialTheme.backgroundColor,
+    initialTheme.textColor,
+    initialTheme.surfaceColor,
+    initialTheme.botName,
+    initialTheme.agentColor,
+    initialTheme.micColor,
+    initialTheme.mode
+  ]);
 
   // Handle theme mode (light/dark) logic
   const toggleTheme = () => setThemeMode(prev => prev === 'light' ? 'dark' : 'light');
@@ -197,7 +217,22 @@ const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
     setMessages([]);
     stopAudio();
     setError(null);
+    setIsTransitioning(false);
   };
+
+  const handleStartChat = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      handleSendMessage("Hello! I want to know more about your services.");
+    }, 500); // Wait for fade-out animation
+  };
+
+  const handleInputActivity = useCallback(() => {
+    if (messages.length === 0 && !isTransitioning) {
+      setIsTransitioning(true);
+    }
+    stopAudio();
+  }, [messages.length, isTransitioning, stopAudio]);
 
 
 
@@ -232,12 +267,28 @@ const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
         </div>
       </div>
 
-      <div className="messages-container">
+      <div className={`messages-container ${messages.length === 0 ? 'empty' : ''}`}>
         {messages.length === 0 ? (
-          <div className="welcome-message">
-            <div className="welcome-content">
-              <h2>Welcome / خوش آمدید / أهلاً بك</h2>
-              <p>Select your language below and start speaking.</p>
+          <div className={`landing-page ${isTransitioning ? 'fade-out' : ''}`}>
+            <div className="landing-content">
+              <h1 className="landing-title">
+                <span key={helloIndex} className="multilingual-hello">
+                  {HELLOS[helloIndex]}
+                </span>
+              </h1>
+
+              <div className="landing-robot-container">
+                <AIBot />
+              </div>
+
+              <h2 className="landing-subtitle">How can I help you?</h2>
+
+              <button
+                className="landing-cta-btn"
+                onClick={handleStartChat}
+              >
+                I want to know!
+              </button>
             </div>
           </div>
         ) : (
@@ -263,6 +314,7 @@ const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
         isLoading={isLoading}
         language={currentLanguage}
         onLanguageChange={setCurrentLanguage}
+        onInputActivity={handleInputActivity}
       />
     </div>
   );

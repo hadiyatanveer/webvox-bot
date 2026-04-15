@@ -20,16 +20,17 @@ const SpinnerIcon = () => (
   </svg>
 );
 
-const ChatInput = ({ onSendMessage, isLoading, language, onLanguageChange }) => {
+const ChatInput = ({ onSendMessage, isLoading, language, onLanguageChange, onInputActivity }) => {
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef(null);
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault();
-    if (message.trim() && !isLoading && !isListening) {
-      await onSendMessage(message.trim(), 'text');
-      setMessage('');
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !isLoading && !isListening) {
+      setMessage(''); // Clear immediately
+      await onSendMessage(trimmedMessage, 'text');
     }
   }, [message, isLoading, isListening, onSendMessage]);
 
@@ -46,12 +47,18 @@ const ChatInput = ({ onSendMessage, isLoading, language, onLanguageChange }) => 
       await onSendMessage(text.trim(), 'voice');
       setMessage('');
     } else if (listening || text) {
+      onInputActivity?.();
       setMessage(text || '');
     }
-  }, [onSendMessage]);
+  }, [onSendMessage, onInputActivity]);
 
   const handleTextChange = (e) => {
-    if (!isListening) setMessage(e.target.value);
+    if (!isListening) {
+      setMessage(e.target.value);
+      if (e.target.value.trim().length > 0) {
+        onInputActivity?.();
+      }
+    }
   };
 
   useEffect(() => {
