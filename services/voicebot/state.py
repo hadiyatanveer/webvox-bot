@@ -17,6 +17,11 @@ class GraphState(TypedDict):
     vector_results: Optional[Any]
     requires_graphql: bool
     rag_context: Optional[Dict[str, Any]]
+
+    # --- GraphQL Retry State ---
+    graphql_retries: int
+    graphql_error: Optional[str]
+    previous_graphql_query: Optional[str]
     
     # Output
     final_response: str
