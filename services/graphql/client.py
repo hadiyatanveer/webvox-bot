@@ -292,7 +292,7 @@ class HasuraClient(GraphQLClientBase):
         
         # Try to get admin secret from args or env
         self.admin_secret = admin_secret or os.environ.get('HASURA_GRAPHQL_ADMIN_SECRET')
-
+        
         self._HEADERS = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.jwt_token or ''}", 

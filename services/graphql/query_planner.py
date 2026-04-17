@@ -29,11 +29,7 @@ class QueryPlannerAgent:
         self.analyzer = get_schema_analyzer()
         self.generator = get_query_generator()
     
-    def plan_query(
-        self,
-        user_query: str,
-        detected_entities: Optional[Dict[str, Any]] = None
-    ) -> Tuple[QueryPlan, str]:
+    def plan_query( self, user_query: str, detected_entities: Optional[Dict[str, Any]] = None, previous_error: Optional[str] = None, previous_query: Optional[str] = None ) -> Tuple[QueryPlan, str]:
         """
         Plan a database query based on user's request and detected entities.
         
@@ -48,8 +44,16 @@ class QueryPlannerAgent:
         
         # Get schema context
         schema_context = self.analyzer.build_schema_context()
-        print(schema_context)
+        #print(schema_context)
         
+        if previous_error and previous_query:
+            user_query += (
+                f"\n\n[SYSTEM ALERT - PREVIOUS QUERY FAILED]\n"
+                f"Your last query:\n{previous_query}\n"
+                f"Failed with error:\n{previous_error}\n"
+                f"Please fix the syntax or field names based on the schema and try again."
+            )
+
         # Create prompt for LLM
         prompt = self._build_planning_prompt(
             user_query,
@@ -112,7 +116,6 @@ class QueryPlannerAgent:
         })
         return prompt
 
-    
     def _parse_llm_response(self, raw_text: str) -> QueryPlan:
         """Parse LLM response into a QueryPlan object."""
         
