@@ -988,3 +988,25 @@ select.form-control {
     padding: var(--space-10) var(--space-12);
   }
 }
+
+/* ── Compact landing page for widget mode ── */
+.chat-container.mode-widget .landing-page {
+  padding: 20px 16px;
+}
+
+.chat-container.mode-widget .landing-content {
+  gap: 14px;
+}
+
+.chat-container.mode-widget .landing-title {
+  font-size: 26px;
+}
+
+.chat-container.mode-widget .landing-subtitle {
+  font-size: 16px;
+}
+
+.chat-container.mode-widget .landing-cta-btn {
+  padding: 10px 24px;
+  font-size: 15px;
+}
