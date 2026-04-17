@@ -83,6 +83,9 @@ class ResponseGenerator:
         
         # Build prompt with context
         context = retrieval_result.get("context", "")
+        query_desc = retrieval_result.get("query_description", "")
+        if query_desc:
+            context = f"[Database filter applied: {query_desc}]\n\n{context}"
         print("context given to user:", context)
         
         prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
@@ -228,6 +231,12 @@ class ResponseGenerator:
                 'clarification.templates.general',
                 "Could you clarify what you want to access? For example: menu items, your orders, or something else?"
             )
+
+        return {
+            "response": response,
+            "status": "clarification",
+            "needs_clarification": True
+        }
         
     def _call_llm(self, prompt: str) -> str:
         """Helper to call LLM and extract text."""

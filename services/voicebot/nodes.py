@@ -162,7 +162,8 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
         rag_context = {
             "status": "success",               
             "context": context_string,     
-            "source_path": "graphql_database"
+            "source_path": "graphql_database",
+            "query_description": query_plan.reasoning
         }
         
         # Success! Clear errors and advance the retry counter
