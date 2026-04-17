@@ -23,7 +23,9 @@ class ResponseGenerator:
         self,
         user_query: str,
         intent_data: Dict[str, Any],
-        retrieval_result: Optional[Dict[str, Any]] = None
+        retrieval_result: Optional[Dict[str, Any]] = None,
+        action_data: Optional[Dict[str, Any]] = None,
+        mutation_result: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Generate a response based on intent and retrieved context.
@@ -32,6 +34,8 @@ class ResponseGenerator:
             user_query: Original user query
             intent_data: Detected intent information
             retrieval_result: Results from information retrieval (if applicable)
+            action_data: Data from action intent classification (if applicable)
+            mutation_result: Results from database mutation (if applicable)
             
         Returns:
             Generated response with metadata
@@ -43,7 +47,7 @@ class ResponseGenerator:
             return self._generate_information_response(user_query, intent_data, retrieval_result)
         
         elif category == "action":
-            return self._generate_action_not_supported_response()
+            return self._generate_action_response(user_query, action_data, mutation_result)
         
         elif category == "webpage":
             return self._generate_webpage_not_supported_response()
@@ -87,15 +91,7 @@ class ResponseGenerator:
         })
 
         try:
-            response = generate_content(prompt)
-            
-            # Extract response text
-            if hasattr(response, "candidates"):
-                response_text = response.candidates[0].content.parts[0].text
-            elif hasattr(response, "content"):
-                response_text = response.content
-            else:
-                response_text = str(response)
+            response_text = self._call_llm(prompt)
             
             return {
                 "response": response_text,
@@ -112,18 +108,93 @@ class ResponseGenerator:
                 "error": str(e)
             }
     
-    def _generate_action_not_supported_response(self) -> Dict[str, Any]:
-        """Generate response when action execution is not supported."""
-        message = self.config.get(
-            'response.fallback.action_not_supported',
-            "I can currently only help with information retrieval. Actions like ordering or booking are not yet available."
-        )
+    def _generate_action_response(
+        self,
+        user_query: str,
+        action_data: Optional[Dict[str, Any]],
+        mutation_result: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Generate response for action intent, handling errors, missing info, and execution results."""
+        if not action_data:
+            return {
+                "response": "I understand you want to perform an action, but I'm having trouble understanding exactly what. Could you be more specific?",
+                "status": "error"
+            }
         
-        return {
-            "response": message,
-            "status": "not_supported",
-            "intent_category": "perform_action"
-        }
+        # 1. Handle Execution Result (New!)
+        if mutation_result:
+            # Use LLM to generate a natural confirmation or error explanation
+            prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
+                "context": f"MUTATION_RESULT: {mutation_result}",
+                "user_query": user_query,
+            })
+            
+            try:
+                response_text = self._call_llm(prompt)
+                return {
+                    "response": response_text,
+                    "status": "success" if mutation_result.get("success") else "error"
+                }
+            except Exception as e:
+                # Fallback to hardcoded if LLM fails
+                return {
+                    "response": "Your request has been processed.",
+                    "status": "success"
+                }
+
+        # 2. Handle Safety/Permission Errors
+        if action_data.get("error"):
+            # Use LLM to explain the error naturally
+            prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
+                "context": f"ACTION_ERROR: {action_data['error']}",
+                "user_query": user_query,
+            })
+            
+            try:
+                response_text = self._call_llm(prompt)
+                return {
+                    "response": response_text,
+                    "status": "disallowed"
+                }
+            except Exception:
+                return {
+                    "response": action_data["error"],
+                    "status": "disallowed"
+                }
+        
+        # 3. Handle Missing Information
+        missing_info = action_data.get("missing_info", {})
+        if not missing_info.get("is_complete", True):
+            questions = missing_info.get("clarification_questions", [])
+            response_text = " ".join(questions) if questions else "I need a bit more info to help with that."
+            return {
+                "response": response_text,
+                "status": "needs_info",
+                "needs_clarification": True
+            }
+        
+        # 4. Handle Successful Data Collection (Ready to Execute)
+        # Use LLM to generate a natural "Are you sure?" or confirmation of intent
+        prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
+            "context": f"ACTION_DATA: {action_data}\n\nSTATUS: ACTION_READY (Awaiting confirmation)",
+            "user_query": user_query,
+        })
+        
+        try:
+            response_text = self._call_llm(prompt)
+            return {
+                "response": response_text,
+                "status": "action_ready",
+                "action_data": action_data
+            }
+        except Exception:
+            # Absolute fallback
+            op = action_data.get("operation", "action")
+            return {
+                "response": f"I've noted your request. Would you like me to proceed with the {op}?",
+                "status": "action_ready",
+                "action_data": action_data
+            }
     
     def _generate_webpage_not_supported_response(self) -> Dict[str, Any]:
         """Generate response when webpage navigation is not supported."""
@@ -158,12 +229,15 @@ class ResponseGenerator:
                 "Could you clarify what you want to access? For example: menu items, your orders, or something else?"
             )
         
-        return {
-            "response": response,
-            "status": "needs_clarification",
-            "needs_clarification": True,
-            "original_query": user_query
-        }
+    def _call_llm(self, prompt: str) -> str:
+        """Helper to call LLM and extract text."""
+        response = generate_content(prompt)
+        
+        if hasattr(response, "candidates"):
+            return response.candidates[0].content.parts[0].text
+        elif hasattr(response, "content"):
+            return response.content
+        return str(response)
 
 
 # Global instance

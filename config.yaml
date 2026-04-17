@@ -4,7 +4,7 @@
 
 llm:
   provider: "groq"             
-  model_name: "openai/gpt-oss-120b" #meta-llama/llama-4-maverick-17b-128e-instruct" #"llama-3.1-8b-instant"
+  model_name: "openai/gpt-oss-20b" #meta-llama/llama-4-maverick-17b-128e-instruct" #"llama-3.1-8b-instant"
   temperature: 0.1
 
 providers:
@@ -70,7 +70,7 @@ graphql:
   # Prevents repeated LLM API calls for table descriptions across restarts and prompts.
   schema_cache:
     enabled: true
-    ttl_seconds: 200          # How long (in seconds) before the cache is considered stale and rebuilt
+    ttl_seconds: 2000          # How long (in seconds) before the cache is considered stale and rebuilt
     cache_file: "data/schema_cache.json"  # Path relative to project root
   
   hasura:

@@ -27,6 +27,7 @@ class FieldInfo:
     type: str
     is_nullable: bool = True
     is_primary_key: bool = False
+    is_mutable: bool = True  # Can appear in update _set clause
 
 
 @dataclass
@@ -48,14 +49,29 @@ class TableInfo:
     fields: List[FieldInfo]
     relationships: List[RelationshipInfo]
     description: Optional[str] = None
+    # Mutation permissions for the current user role
+    can_insert: bool = False
+    can_update: bool = False
     
     def get_field_names(self) -> List[str]:
         """Get list of field names."""
         return [f.name for f in self.fields]
-    
+
     def get_relationship_names(self) -> List[str]:
         """Get list of relationship names."""
         return [r.name for r in self.relationships]
+
+    def get_mutable_fields(self) -> List[str]:
+        """
+        Return all names that may be written in a mutation.
+        Includes:
+        - Scalar fields with is_mutable=True (direct columns)
+        - Relationship names (FK / nested insert targets)
+        The LLM decides which of these are actually required.
+        """
+        scalar_mutable = [f.name for f in self.fields if f.is_mutable]
+        rel_names = [r.name for r in self.relationships]
+        return scalar_mutable + rel_names
 
 
 class SchemaIntrospector:
@@ -146,6 +162,38 @@ class SchemaIntrospector:
         """Get list of all table names."""
         schema = self.introspect_schema()
         return list(schema.keys())
+
+    # ------------------------------------------------------------------
+    # Mutation helpers (consumed by MutationPlannerAgent)
+    # ------------------------------------------------------------------
+
+    def get_mutable_tables(self) -> Dict[str, Dict[str, bool]]:
+        """
+        Return tables that the current role can write to.
+
+        Returns:
+            Dict mapping table_name → {can_insert: bool, can_update: bool}
+            Only tables with at least one True permission are included.
+        """
+        schema = self.introspect_schema()
+        return {
+            name: {'can_insert': info.can_insert, 'can_update': info.can_update}
+            for name, info in schema.items()
+            if info.can_insert or info.can_update
+        }
+
+    def get_mutable_fields(self, table_name: str) -> List[str]:
+        """
+        Return all writable field and relationship names for a table.
+        Includes mutable scalar columns AND relationship names (FK / nested targets).
+        Returns [] if the table is not found or has no write permission at all.
+
+        The LLM (MutationPlannerAgent) decides which subset is actually needed.
+        """
+        table_info = self.get_table_info(table_name)
+        if not table_info or (not table_info.can_insert and not table_info.can_update):
+            return []
+        return table_info.get_mutable_fields()
     
     def clear_cache(self):
         """Clear the schema cache."""
@@ -161,6 +209,17 @@ class SchemaIntrospector:
         elapsed = time.time() - self._cache_timestamp
         return elapsed < self.cache_ttl
     
+    # Columns that are never writable — auto-managed by the DB
+    _IMMUTABLE_COLUMNS = {'id', 'created_at', 'updated_at', 'delivered_at'}
+
+    # Per-table mutation permission defaults for the mock client
+    _MOCK_PERMISSIONS: Dict[str, Dict[str, bool]] = {
+        'menu_items': {'can_insert': True,  'can_update': True},
+        'orders':     {'can_insert': True,  'can_update': True},
+        'categories': {'can_insert': False, 'can_update': False},
+        'policies':   {'can_insert': False, 'can_update': False},
+    }
+
     def _introspect_mock_schema(self) -> Dict[str, TableInfo]:
         """Introspect schema from mock client (simulated data)."""
         schema = {}
@@ -172,19 +231,21 @@ class SchemaIntrospector:
                 continue
             
             table_schema = schema_info['schema']
-            
+            perms = self._MOCK_PERMISSIONS.get(table_name, {'can_insert': False, 'can_update': False})
+
             # Convert columns to FieldInfo objects
             fields = []
             for col_name in table_schema.get('columns', []):
-                # Infer type from common patterns
                 field_type = self._infer_field_type(col_name)
                 is_pk = col_name == 'id'
-                
+                is_immutable = col_name in self._IMMUTABLE_COLUMNS
+
                 fields.append(FieldInfo(
                     name=col_name,
                     type=field_type,
                     is_nullable=not is_pk,
-                    is_primary_key=is_pk
+                    is_primary_key=is_pk,
+                    is_mutable=not is_immutable and not is_pk  # PKs are always immutable
                 ))
             
             # Mock relationships (hardcoded for common patterns)
@@ -194,7 +255,9 @@ class SchemaIntrospector:
                 name=table_name,
                 fields=fields,
                 relationships=relationships,
-                description=table_schema.get('description')
+                description=table_schema.get('description'),
+                can_insert=perms['can_insert'],
+                can_update=perms['can_update']
             )
         
         return schema
@@ -204,6 +267,9 @@ class SchemaIntrospector:
         schema = {}
 
         tables = self.client.get_available_tables()
+
+        # Step A: detect which tables the current role can insert / update
+        mutation_permissions = self._introspect_mutation_permissions()
 
         for table_name in tables:
             try:
@@ -240,6 +306,15 @@ class SchemaIntrospector:
                 if not type_info:
                     continue
 
+                perms = mutation_permissions.get(table_name, {'can_insert': False, 'can_update': False})
+                can_insert = perms['can_insert']
+                can_update = perms['can_update']
+
+                # Step B: fetch mutable update fields from <table>_set_input
+                update_mutable: set = set()
+                if can_update:
+                    update_mutable = self._introspect_set_input_fields(table_name)
+
                 fields: List[FieldInfo] = []
                 relationships: List[RelationshipInfo] = []
 
@@ -254,7 +329,7 @@ class SchemaIntrospector:
                     is_list = analyzed["is_list"]
                     is_non_null = analyzed["is_non_null"]
 
-                    # 🔥 Detect relationships
+                    # Detect relationships
                     if base_kind == "OBJECT":
                         if is_list:
                             relationships.append(
@@ -273,29 +348,109 @@ class SchemaIntrospector:
                                 )
                             )
                     else:
-                        # Scalar field
+                        # Scalar field — determine mutability
+                        # If we have set_input data, use it; otherwise fall back to
+                        # excluding known auto-managed columns.
+                        is_pk = (field_name == "id")
+                        if update_mutable:
+                            field_is_mutable = field_name in update_mutable
+                        else:
+                            field_is_mutable = field_name not in self._IMMUTABLE_COLUMNS
+
                         fields.append(
                             FieldInfo(
                                 name=field_name,
                                 type=base_name if base_name else "String",
                                 is_nullable=not is_non_null,
-                                is_primary_key=(field_name == "id")
+                                is_primary_key=is_pk,
+                                is_mutable=field_is_mutable and not is_pk  # PKs are always immutable
                             )
                         )
 
                 schema[table_name] = TableInfo(
                     name=table_name,
                     fields=fields,
-                    relationships=relationships
+                    relationships=relationships,
+                    can_insert=can_insert,
+                    can_update=can_update
                 )
 
             except Exception as e:
                 print(f"  ⚠️ Error introspecting table {table_name}: {e}")
                 continue
         
-        #print("assuming relatonal metadata has been provided by client...")
         schema = self._apply_metadata_field_mappings(schema)
         return schema
+
+    def _introspect_mutation_permissions(self) -> Dict[str, Dict[str, bool]]:
+        """
+        Query the mutation_root type to discover which tables the current
+        JWT role may insert into or update.
+
+        Returns:
+            Dict mapping table_name → {can_insert: bool, can_update: bool}
+        """
+        permissions: Dict[str, Dict[str, bool]] = {}
+        query = """
+        query {
+          __type(name: "mutation_root") {
+            fields {
+              name
+            }
+          }
+        }
+        """
+        try:
+            result = self.client._execute_graphql(query)
+            mutation_fields = (
+                result.get("data", {}).get("__type") or {}
+            ).get("fields", [])
+
+            for f in mutation_fields:
+                name = f["name"]
+                # insert_<table> or insert_<table>_one
+                if name.startswith("insert_") and not name.endswith("_one"):
+                    table = name[len("insert_"):]
+                    permissions.setdefault(table, {'can_insert': False, 'can_update': False})
+                    permissions[table]['can_insert'] = True
+                elif name.startswith("update_") and not name.endswith("_by_pk") and not name.endswith("_many"):
+                    table = name[len("update_"):]
+                    permissions.setdefault(table, {'can_insert': False, 'can_update': False})
+                    permissions[table]['can_update'] = True
+
+        except Exception as e:
+            print(f"  ⚠️ Could not introspect mutation_root: {e}")
+
+        return permissions
+
+    def _introspect_set_input_fields(self, table_name: str) -> set:
+        """
+        Introspect <table_name>_set_input to find which fields are exposed
+        for update mutations (i.e., are mutable).
+
+        Returns:
+            Set of field names that may appear in an update _set clause.
+        """
+        mutable: set = set()
+        input_type = f"{table_name}_set_input"
+        query = f"""
+        query {{
+          __type(name: "{input_type}") {{
+            inputFields {{
+              name
+            }}
+          }}
+        }}
+        """
+        try:
+            result = self.client._execute_graphql(query)
+            type_data = (result.get("data", {}).get("__type") or {})
+            for f in type_data.get("inputFields", []):
+                mutable.add(f["name"])
+        except Exception as e:
+            print(f"  ⚠️ Could not introspect {input_type}: {e}")
+
+        return mutable
 
     def _load_relational_metadata(self) -> Dict[str, Any]:
         """

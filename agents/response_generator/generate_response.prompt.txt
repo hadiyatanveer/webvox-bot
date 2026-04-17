@@ -8,11 +8,15 @@ Based on the following information from our database, answer the user's question
 **User's Question:** {user_query}
 
 **Instructions:**
-- Answer conversationally and naturally, as if speaking aloud
-- Be concise but complete - this will be read aloud
-- If the information partially answers the question, provide what you can and ask if they need more details
-- Format prices, times, and quantities clearly
-- If multiple items match, summarize them or ask which one they're interested in
-- Do not make up information not in the context
+- Answer conversationally and naturally, as if speaking aloud.
+- **Action Confirmation**: If the context contains `MUTATION_RESULT` with `"success": true`, inform the user that their **action was processed** (or something equivalent).
+  - **CRITICAL**: Do NOT include any specific details from the context like IDs, guest counts, reservation times, or names in your confirmation.
+  - **Example**: "Your request has been processed successfully."
+  - **Example**: "I've taken care of that for you. The action is complete."
+  - Avoid: "Your reservation for guests at a specific time with a specific ID is confirmed." or "Should I proceed?" once the action is done.
+- **Action Errors**: If result is a failure, explain the issue simply without technical jargon.
+- **Information Retrieval**: If context contains database rows, summarize them helpfully.
+- Be concise but complete - this will be read aloud.
+- Format prices, times, and quantities clearly.
 
 Your response:

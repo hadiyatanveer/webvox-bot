@@ -17,11 +17,7 @@ class ResponseHandler:
         self.pii_fields = self.config.get('graphql.normalize.pii_fields', [])
         self.system_fields = self.config.get('graphql.normalize.remove_system_fields', [])
     
-    def normalize(
-        self,
-        response: Dict[str, Any],
-        query_type: str
-    ) -> Dict[str, Any]:
+    def normalize(self, response: Dict[str, Any], query_type: str) -> Dict[str, Any]:
         """
         Normalize a GraphQL response for RAG processing.
         
@@ -59,11 +55,7 @@ class ResponseHandler:
             "query_type": query_type
         }
     
-    def _normalize_item(
-        self,
-        item: Dict[str, Any],
-        query_type: str
-    ) -> Dict[str, Any]:
+    def _normalize_item(self, item: Dict[str, Any], query_type: str) -> Dict[str, Any]:
         """Normalize a single item to text."""
         if not item:
             return {"text": "", "entity_id": None, "entity_type": query_type}

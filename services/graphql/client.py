@@ -179,7 +179,9 @@ class MockGraphQLClient(GraphQLClientBase):
         return get_mock_menu_items(
             category=params.get("category"),
             search_term=params.get("search"),
-            vegetarian_only=params.get("vegetarian", False)
+            vegetarian_only=params.get("vegetarian", False),
+            id=params.get("id"),
+            name=params.get("name")
         )
     
     def _query_categories(self, params: Dict[str, Any]) -> List[Dict]:
@@ -287,12 +289,10 @@ class HasuraClient(GraphQLClientBase):
         
         # Try to get JWT token from env
         self.jwt_token = os.environ.get('USER_JWT_TOKEN')
-        print("heres the jwt token",self.jwt_token)
         
         # Try to get admin secret from args or env
         self.admin_secret = admin_secret or os.environ.get('HASURA_GRAPHQL_ADMIN_SECRET')
-        print("heres the secret",self.admin_secret)
-        
+
         self._HEADERS = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.jwt_token or ''}", 

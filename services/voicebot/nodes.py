@@ -8,6 +8,23 @@ from services.graphql.query_planner import get_query_planner_agent
 from services.graphql.client import get_graphql_client
 from services.graphql.response_handler import get_response_handler
 from services.response_generator.generator import get_response_generator
+from services.action_execution.action_intent_classifier import get_action_intent_classifier
+from services.action_execution.action_enricher import get_action_enricher
+from services.action_execution.mutation_planner import get_mutation_planner
+
+def action_enrichment_node(state: GraphState) -> Dict[str, Any]:
+    """
+    Enriches action_data with resolved IDs and calculated fields.
+    """
+    action_data = state.get("action_data")
+    if not action_data:
+        return {}
+    
+    print(f"---NODE: ACTION ENRICHMENT---")
+    enricher = get_action_enricher()
+    enriched_data = enricher.enrich_intent(action_data)
+    
+    return {"action_data": enriched_data}
 
 def detect_intent_node(state: GraphState) -> Dict[str, Any]:
     """Analyzes the user's intent and extracts entities."""
@@ -24,6 +41,45 @@ def detect_intent_node(state: GraphState) -> Dict[str, Any]:
         "intent_data": intent_data,
         "needs_clarification": needs_clarification
     }
+
+def action_intent_classifier_node(state: GraphState) -> Dict[str, Any]:
+    """Refines action-category intents and enforces safety rules."""
+    print("---NODE: ACTION INTENT CLASSIFIER---")
+    user_input = state["user_input"]
+    intent_data = state["intent_data"]
+    
+    classifier = get_action_intent_classifier()
+    
+    # Extract entities from the main intent detector to pass as context
+    detected_entities = intent_data.get("entities", {})
+    
+    # Classify the specific action (insert/update/delete) and table/columns
+    # Pass existing action_data to handle iterative turns
+    action_intent = classifier.classify_action(
+        user_input, 
+        detected_entities, 
+        previous_action_data=state.get("action_data")
+    )
+    
+    # Convert dataclass to dict for LangGraph state
+    action_data = {
+        "operation": action_intent.operation,
+        "primary_table": action_intent.primary_table,
+        "secondary_tables": action_intent.secondary_tables,
+        "tables_data": action_intent.tables_data,
+        "missing_info": action_intent.missing_info,
+        "confidence": action_intent.confidence,
+        "reasoning": action_intent.reasoning,
+        "error": action_intent.error
+    }
+    
+    result = {"action_data": action_data}
+    
+    # Handle missing information (Clarification flag)
+    if not action_intent.missing_info.get("is_complete", True):
+        result["needs_clarification"] = True
+        
+    return result
 
 def vector_search_node(state: GraphState) -> Dict[str, Any]:
     """Fast Path: Searches FAISS for static documents."""
@@ -67,52 +123,105 @@ def vector_search_node(state: GraphState) -> Dict[str, Any]:
     }
 
 def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
-    """Slow Path: Plans and executes a Hasura GraphQL query."""
+    """Slow Path: Plans and executes a Hasura GraphQL query with retries."""
     print("---NODE: GRAPHQL DATABASE (SLOW PATH)---")
     user_input = state["user_input"]
     intent_data = state["intent_data"]
+    
+    # Get current retry state
+    retries = state.get("graphql_retries", 0)
+    prev_error = state.get("graphql_error")
+    prev_query = state.get("previous_graphql_query")
     
     planner = get_query_planner_agent()
     client = get_graphql_client()
     handler = get_response_handler()
     
     try:
-        # 1. Plan the query using the LLM schema analyzer
+        # Pass previous errors to the planner
         query_plan, graphql_query = planner.plan_query(
             user_input, 
-            intent_data.get("entities")
+            intent_data.get("entities"),
+            previous_error=prev_error,
+            previous_query=prev_query
         )
         
-        # ---> RESTORED VISIBILITY <---
-        print(f"  → Generated GraphQL query:\n{graphql_query}")
+        print(f"  → Generated GraphQL query (Attempt {retries + 1}):\n{graphql_query}")
         
-        # 2. Execute the query against Hasura
         raw_response = client.execute_graphql_query(graphql_query)
         
-        # ---> RESTORED VISIBILITY <---
+        # --- Explicitly trigger retry if Hasura returns an error ---
+        if not raw_response.get("success"):
+            raise Exception(raw_response.get("error", "Unknown Hasura Error"))
+            
         print(f"  → Raw GraphQL Query response: {raw_response}")
         
-        # 3. Normalize the JSON response into readable text
         normalized_context = handler.normalize(raw_response, query_plan.primary_table)
-        
         context_string = normalized_context.get("text", str(normalized_context))
         
-        # Give generator.py EXACTLY what it demands, without the bloated raw JSON
         rag_context = {
             "status": "success",               
-            "context": context_string,     # <--- Now passing just the text!
+            "context": context_string,     
             "source_path": "graphql_database"
         }
         
-        return {"rag_context": rag_context}
+        # Success! Clear errors and advance the retry counter
+        return {
+            "rag_context": rag_context,
+            "graphql_error": None,
+            "graphql_retries": retries + 1,
+            "previous_graphql_query": graphql_query
+        }
         
     except Exception as e:
-        print(f"GraphQL execution failed: {e}")
-        return {"error": str(e), "rag_context": None}
+        error_msg = str(e)
+        print(f"  ⚠️ GraphQL execution failed: {error_msg}")
+        
+        # Return the error to the state so the graph edge can catch it
+        return {
+            "graphql_error": error_msg,
+            "graphql_retries": retries + 1,
+            "previous_graphql_query": graphql_query if 'graphql_query' in locals() else None,
+            "rag_context": None
+        }
+
+def mutation_execution_node(state: GraphState) -> Dict[str, Any]:
+    """Plans and executes the finalized GraphQL mutation."""
+    print("---NODE: MUTATION EXECUTION---")
+    
+    action_data = state.get("action_data")
+    if not action_data:
+        return {"error": "No action data found for execution."}
+        
+    planner = get_mutation_planner()
+    client = get_graphql_client()
+    
+    try:
+        # Extract user_id from context
+        user_id = state.get("user_context", {}).get("user_id")
+        
+        # 1. Generate the mutation string from the collected data
+        mutation_string = planner.plan_mutation(action_data, user_id)
+        print(f"  → Generated Mutation:\n{mutation_string}")
+        
+        # 2. Execute against Hasura
+        raw_response = client.execute_graphql_query(mutation_string)
+        
+        # 3. Store result for Response Generator
+        return {
+            "mutation_result": raw_response,
+            "error": None if raw_response.get("success") else raw_response.get("error")
+        }
+        
+    except Exception as e:
+        print(f"Mutation execution failed: {e}")
+        return {"error": str(e)}
     
 def generate_response_node(state: GraphState) -> Dict[str, Any]:
     """Synthesizes the final voice response."""
-    print("---NODE: GENERATE RESPONSE---")
+    print(f"---NODE: GENERATE RESPONSE--- (Result in state: {'mutation_result' in state})")
+    if 'mutation_result' in state:
+        print(f"  → Mutation Success: {state['mutation_result'].get('success')}")
     
     generator = get_response_generator()
     
@@ -120,7 +229,15 @@ def generate_response_node(state: GraphState) -> Dict[str, Any]:
     result = generator.generate(
         user_query=state["user_input"],
         intent_data=state["intent_data"],
-        retrieval_result=state.get("rag_context")
+        retrieval_result=state.get("rag_context"),
+        action_data=state.get("action_data"),
+        mutation_result=state.get("mutation_result")
     )
     
-    return {"final_response": result.get("response", "I'm sorry, I encountered an error.")}
+    # If a mutation was successful, we should clear the pending action state
+    # so the next turn starts fresh.
+    updates = {"final_response": result.get("response", "I'm sorry, I encountered an error.")}
+    if state.get("mutation_result") and state["mutation_result"].get("success"):
+        updates["action_data"] = None  # Clear the form
+        
+    return updates

@@ -2,13 +2,24 @@ Analyze this database table and provide a brief, clear description of its purpos
 
 **Table Name:** {table_name}
 
+**Permissions:**
+{permissions_info}
+
 **Fields:**
 {field_info}
 
 **Relationships:**
 {rel_info}
 
-Provide a single-sentence description (max 15 words) explaining what data this table stores.
-Format: "Contains [data type] with [key characteristics]"
+**Mutability legend:**
+- [immutable] — auto-managed by the database; cannot be set by the user
+- [writable]  — may be included in insert / update mutations
+- [writable, relationship] — a related table that can be targeted in a nested mutation
+
+Using the field tags above, provide a single-sentence description (max 20 words) explaining:
+1. What data this table stores
+2. Whether it is read-only or user-writable
+
+Format: "Contains [data type]; [read-only | writable via insert/update] with [key writable fields if any]."
 
 Description:

@@ -96,12 +96,7 @@ class SchemaAnalyzer:
         self._descriptions_cache[table_name] = description
         return description
 
-    def get_relationship_description(
-        self,
-        from_table: str,
-        to_table: str,
-        relationship_type: RelationshipType
-    ) -> str:
+    def get_relationship_description(self, from_table: str, to_table: str, relationship_type: RelationshipType) -> str:
         """
         Get a human-readable description of how two tables relate.
         
@@ -200,11 +195,7 @@ class SchemaAnalyzer:
 
         return schema_context
 
-    def suggest_fields_for_query(
-        self,
-        table_name: str,
-        user_query: str
-    ) -> List[str]:
+    def suggest_fields_for_query(self, table_name: str, user_query: str) -> List[str]:
         """
         Suggest which fields should be included in a query based on user intent.
         
@@ -230,11 +221,7 @@ class SchemaAnalyzer:
         
         return list(set(essential_fields))
 
-    def suggest_relationships_for_query(
-        self,
-        table_name: str,
-        user_query: str
-    ) -> List[str]:
+    def suggest_relationships_for_query(self, table_name: str, user_query: str) -> List[str]:
         """
         Suggest which relationships should be followed in a query.
         
@@ -360,18 +347,30 @@ class SchemaAnalyzer:
         Returns:
             Generated description
         """
-        # Prepare field information
+        # Permissions line
+        can_insert = getattr(table_info, 'can_insert', False)
+        can_update = getattr(table_info, 'can_update', False)
+        permissions_info = (
+            f"can_insert={can_insert}, can_update={can_update} "
+            f"({'writable' if can_insert or can_update else 'read-only'})"
+        )
+
+        # Prepare field information with mutability tags
         field_info = []
-        for field in table_info.fields[:10]:  # Limit to first 10 fields
-            field_info.append(f"- {field.name} ({field.type})")
-        
-        # Prepare relationship information
+        for f in table_info.fields[:10]:  # Limit to first 10 fields
+            tag = "[immutable]" if not f.is_mutable else "[writable]"
+            field_info.append(f"- {f.name} ({f.type})  {tag}")
+
+        # Prepare relationship information with mutability tags
         rel_info = []
         for rel in table_info.relationships:
-            rel_info.append(f"- {rel.name} → {rel.remote_table} ({rel.type.value})")
-        
+            rel_info.append(
+                f"- {rel.name} → {rel.remote_table} ({rel.type.value})  [writable, relationship]"
+            )
+
         prompt = load_prompt("schema_analyzer", "describe_table.prompt.txt", {
             "table_name": table_info.name,
+            "permissions_info": permissions_info,
             "field_info": chr(10).join(field_info),
             "rel_info": chr(10).join(rel_info) if rel_info else "None",
         })

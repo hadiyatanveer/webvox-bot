@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 # Mock menu data (food delivery example)
 MOCK_MENU_ITEMS = [
     {
-        "id": "pizza_001",
+        "id": 1,
         "name": "Margherita Pizza",
         "category": "Pizza",
         "description": "Classic pizza with fresh tomatoes, mozzarella cheese, and basil",
@@ -23,7 +23,7 @@ MOCK_MENU_ITEMS = [
         "reviews_count": 234
     },
     {
-        "id": "pizza_002",
+        "id": 2,
         "name": "Pepperoni Pizza",
         "category": "Pizza",
         "description": "Loaded with pepperoni slices and melted mozzarella",
@@ -38,7 +38,7 @@ MOCK_MENU_ITEMS = [
         "reviews_count": 456
     },
     {
-        "id": "pizza_003",
+        "id": 3,
         "name": "BBQ Chicken Pizza",
         "category": "Pizza",
         "description": "Grilled chicken with BBQ sauce, red onions, and cilantro",

@@ -16,25 +16,24 @@ class VoiceBotManager:
     def process_input(self, session_id: str, user_input: str) -> dict:
         """
         Feeds the user input into the LangGraph and extracts the final response.
+        Persistence is managed via thread_id (session_id).
         """
-        # 1. Define the initial state exactly as required by GraphState
-        initial_state = {
+        # 1. Prepare only the updates for the current turn
+        # The checkpointer will load the previous state for this thread_id
+        input_data = {
             "user_input": user_input,
             "session_id": session_id,
-            "intent_data": {},
-            "needs_clarification": False,
-            "vector_results": None,
-            "requires_graphql": False,
-            "rag_context": None,
-            "final_response": "",
-            "error": None
+            "user_context": {"user_id": 1} 
         }
+
+        # 2. Configure the graph execution with the thread_id
+        config = {"configurable": {"thread_id": session_id}}
 
         try:
             print(f"\n🚀 --- STARTING LANGGRAPH EXECUTION [Session: {session_id}] ---")
             
-            # 2. Invoke the graph (this runs the nodes and conditional edges)
-            final_state = self.graph.invoke(initial_state)
+            # 3. Invoke the graph with the thread config
+            final_state = self.graph.invoke(input_data, config=config)
             
             print("✅ --- LANGGRAPH EXECUTION COMPLETE ---\n")
 
@@ -46,7 +45,8 @@ class VoiceBotManager:
 
             return {
                 "response": response_text,
-                "status": "success"
+                "status": "success",
+                "state": final_state
             }
             
         except Exception as e:
