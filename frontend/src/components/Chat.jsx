@@ -269,14 +269,16 @@ const Chat = ({ theme: initialTheme = DEFAULT_THEME }) => {
               <div className="landing-robot-container">
                 <AIBot />
               </div>
+              <h2 className="landing-subtitle">What can I help you with today?</h2>
 
-              <h2 className="landing-subtitle">How can I help you?</h2>
+              <div className="landing-chips">
+                <button className="chip" onClick={() => handleSendMessage("Tell me about your services.")}>Our services</button>
+                <button className="chip" onClick={() => handleSendMessage("What are your pricing plans?")}>Pricing plans</button>
+                <button className="chip" onClick={() => handleSendMessage("What items you offer?")}>Items offered</button>
+              </div>
 
-              <button
-                className="landing-cta-btn"
-                onClick={handleStartChat}
-              >
-                I want to know!
+              <button className="landing-cta-btn" onClick={handleStartChat}>
+                Start a conversation
               </button>
             </div>
           </div>
