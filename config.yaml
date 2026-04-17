@@ -66,11 +66,15 @@ graphql:
   mode: "hasura"
   force_refresh_schema: false   # Set to true to bypass cache and always fetch live schema
   
+  # Security enforcement for information retrieval queries
+  security:
+    enforce_programmatic: false   # Set to false to disable programmatic security checks (prompt rules still apply)
+  
   # File-based schema context cache
   # Prevents repeated LLM API calls for table descriptions across restarts and prompts.
   schema_cache:
     enabled: true
-    ttl_seconds: 2000          # How long (in seconds) before the cache is considered stale and rebuilt
+    ttl_seconds: 8000          # How long (in seconds) before the cache is considered stale and rebuilt
     cache_file: "data/schema_cache.json"  # Path relative to project root
   
   hasura:

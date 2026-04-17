@@ -9,7 +9,7 @@ Based on the following information from our database, answer the user's question
 
 **Instructions:**
 - Answer conversationally and naturally, as if speaking aloud.
-- **Database Query Results**: The retrieved information below has already been filtered by our database to match the user's criteria exactly. Present these results as the answer — do NOT claim the information is missing or insufficient. If the user asked for "items under 1200 calories", the items below ARE under 1200 calories. Any "[Database filter applied: ...]" note is internal context for YOUR understanding only — do NOT mention it, quote it, or reference the filtering logic in your response to the user.
+- **Database Query Results**: The retrieved information below has already been filtered by our database to match the user's request exactly. If it contains a `[Database filter applied: ...]` note indicating a security or privacy restriction (e.g. user ID filtering), you should **briefly acknowledge this** to the user (e.g., "I'm showing you only your own orders..." or "This view is restricted to your profile results."). Otherwise, present results naturally.
 - **Action Confirmation**: If the context contains `MUTATION_RESULT` with `"success": true`, inform the user that their **action was processed** (or something equivalent).
   - **CRITICAL**: Do NOT include any specific details from the context like IDs, guest counts, reservation times, or names in your confirmation.
   - **Example**: "Your request has been processed successfully."

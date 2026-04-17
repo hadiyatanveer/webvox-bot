@@ -122,6 +122,23 @@ def vector_search_node(state: GraphState) -> Dict[str, Any]:
         "rag_context": rag_context
     }
 
+# Permission-denied error patterns (table not accessible for current role)
+_PERMISSION_DENIED_PATTERNS = [
+    "field not found in type",
+    "not found in type",
+    "field not allowed",
+    "permission denied",
+    "access denied",
+    "not permitted",
+    "not allowed for role",
+]
+
+def _is_permission_error(error_msg: str) -> bool:
+    """Check if an error message indicates a permission/access denial."""
+    error_lower = error_msg.lower()
+    return any(pattern in error_lower for pattern in _PERMISSION_DENIED_PATTERNS)
+
+
 def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
     """Slow Path: Plans and executes a Hasura GraphQL query with retries."""
     print("---NODE: GRAPHQL DATABASE (SLOW PATH)---")
@@ -133,26 +150,65 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
     prev_error = state.get("graphql_error")
     prev_query = state.get("previous_graphql_query")
     
+    # Extract user_id from context for security filtering
+    user_id = state.get("user_context", {}).get("user_id")
+    
     planner = get_query_planner_agent()
     client = get_graphql_client()
     handler = get_response_handler()
     
     try:
-        # Pass previous errors to the planner
+        # Pass previous errors and user_id to the planner
         query_plan, graphql_query = planner.plan_query(
             user_input, 
             intent_data.get("entities"),
             previous_error=prev_error,
-            previous_query=prev_query
+            previous_query=prev_query,
+            user_id=user_id
         )
         
+        # --- Handle Security Refusal (Confidence 0) ---
+        if query_plan.confidence <= 0:
+            print(f"  🚫 Security Refusal: {query_plan.reasoning}")
+            rag_context = {
+                "status": "success",
+                "context": f"I'm sorry, I don't have permission to access that information. {query_plan.reasoning}",
+                "source_path": "security_refusal",
+                "query_description": query_plan.reasoning
+            }
+            return {
+                "rag_context": rag_context,
+                "graphql_error": None,
+                "graphql_retries": retries + 1,
+                "previous_graphql_query": None
+            }
+
         print(f"  → Generated GraphQL query (Attempt {retries + 1}):\n{graphql_query}")
         
         raw_response = client.execute_graphql_query(graphql_query)
         
-        # --- Explicitly trigger retry if Hasura returns an error ---
+        # --- Check for permission-denied errors (no SELECT perms) ---
         if not raw_response.get("success"):
-            raise Exception(raw_response.get("error", "Unknown Hasura Error"))
+            error_msg = raw_response.get("error", "Unknown Hasura Error")
+            
+            # If this is a permission error, don't retry — return a refusal
+            if _is_permission_error(error_msg):
+                print(f"  🚫 Permission denied — not retrying: {error_msg}")
+                rag_context = {
+                    "status": "success",
+                    "context": "I'm sorry, I don't have access to that information. "
+                               "The data you requested is restricted and cannot be retrieved.",
+                    "source_path": "security_refusal",
+                    "query_description": "Access denied by database permissions"
+                }
+                return {
+                    "rag_context": rag_context,
+                    "graphql_error": None,
+                    "graphql_retries": retries + 1,
+                    "previous_graphql_query": graphql_query
+                }
+            
+            raise Exception(error_msg)
             
         print(f"  → Raw GraphQL Query response: {raw_response}")
         
@@ -177,6 +233,23 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
     except Exception as e:
         error_msg = str(e)
         print(f"  ⚠️ GraphQL execution failed: {error_msg}")
+        
+        # If this is a permission error caught at exception level, short-circuit
+        if _is_permission_error(error_msg):
+            print(f"  🚫 Permission denied (exception) — not retrying")
+            rag_context = {
+                "status": "success",
+                "context": "I'm sorry, I don't have access to that information. "
+                           "The data you requested is restricted and cannot be retrieved.",
+                "source_path": "security_refusal",
+                "query_description": "Access denied by database permissions"
+            }
+            return {
+                "rag_context": rag_context,
+                "graphql_error": None,
+                "graphql_retries": retries + 1,
+                "previous_graphql_query": graphql_query if 'graphql_query' in locals() else None,
+            }
         
         # Return the error to the state so the graph edge can catch it
         return {
