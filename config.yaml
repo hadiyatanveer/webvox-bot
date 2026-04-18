@@ -74,7 +74,7 @@ graphql:
   # Prevents repeated LLM API calls for table descriptions across restarts and prompts.
   schema_cache:
     enabled: true
-    ttl_seconds: 8000          # How long (in seconds) before the cache is considered stale and rebuilt
+    ttl_seconds: 800          # How long (in seconds) before the cache is considered stale and rebuilt
     cache_file: "data/schema_cache.json"  # Path relative to project root
   
   hasura:

@@ -111,17 +111,18 @@ class ResponseGenerator:
                 "error": str(e)
             }
     
-    def _generate_action_response(
-        self,
-        user_query: str,
-        action_data: Optional[Dict[str, Any]],
-        mutation_result: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    def _generate_action_response(self, user_query: str, action_data: Optional[Dict[str, Any]], mutation_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Generate response for action intent, handling errors, missing info, and execution results."""
         if not action_data:
             return {
                 "response": "I understand you want to perform an action, but I'm having trouble understanding exactly what. Could you be more specific?",
                 "status": "error"
+            }
+        
+        if action_data.get("error"):
+            return {
+                "response": action_data["error"],  # Already a user-facing message
+                "status": "disallowed"
             }
         
         # 1. Handle Execution Result (New!)
@@ -145,25 +146,6 @@ class ResponseGenerator:
                     "status": "success"
                 }
 
-        # 2. Handle Safety/Permission Errors
-        if action_data.get("error"):
-            # Use LLM to explain the error naturally
-            prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
-                "context": f"ACTION_ERROR: {action_data['error']}",
-                "user_query": user_query,
-            })
-            
-            try:
-                response_text = self._call_llm(prompt)
-                return {
-                    "response": response_text,
-                    "status": "disallowed"
-                }
-            except Exception:
-                return {
-                    "response": action_data["error"],
-                    "status": "disallowed"
-                }
         
         # 3. Handle Missing Information
         missing_info = action_data.get("missing_info", {})
