@@ -160,13 +160,6 @@ async def speech_to_text(
             except Exception as e:
                 print(f"Warning: Could not remove {temp_wav}: {e}")
 
-# --- 4. DEBUG ENDPOINTS ---
-@app.post("/api/debug/clear-cache")
-async def handle_clear_cache():
-    from utilities.prompt_loader import clear_prompt_cache
-    clear_prompt_cache()
-    return {"status": "success", "message": "Prompt cache cleared"}
-
 # Include the langgraph router
 app.include_router(router_voicebot)
 
