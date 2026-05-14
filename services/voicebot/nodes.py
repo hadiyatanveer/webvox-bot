@@ -158,7 +158,8 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
     handler = get_response_handler()
     
     try:
-        # Pass previous errors and user_id to the planner
+        # Step 1: LLM Query Planning
+        # Pass previous errors and user_id to the planner to generate the query
         query_plan, graphql_query = planner.plan_query(
             user_input, 
             intent_data.get("entities"),
@@ -167,7 +168,10 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
             user_id=user_id
         )
         
-        # --- Handle Security Refusal (Confidence 0) ---
+        # Step 2: Preemptive LLM Security Refusal Check
+        # The LLM determines if the query violates security policies before execution.
+        # If confidence is 0, it short-circuits the retry loop with a dummy success
+        # and a refusal message.
         if query_plan.confidence <= 0:
             print(f"  🚫 Security Refusal: {query_plan.reasoning}")
             rag_context = {
@@ -183,15 +187,17 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
                 "previous_graphql_query": None
             }
 
+        # Step 3: Execute GraphQL Query
         print(f"  → Generated GraphQL query (Attempt {retries + 1}):\n{graphql_query}")
-        
         raw_response = client.execute_graphql_query(graphql_query)
         
-        # --- Check for permission-denied errors (no SELECT perms) ---
+        # Step 4: Handle Soft DB Validation Errors
+        # If Hasura returns an error (like missing permissions due to RBAC), we check
+        # if it's a permission error. If it is, we short-circuit the loop again
+        # to avoid frantic retries from the LLM on forbidden data.
         if not raw_response.get("success"):
             error_msg = raw_response.get("error", "Unknown Hasura Error")
             
-            # If this is a permission error, don't retry — return a refusal
             if _is_permission_error(error_msg):
                 print(f"  🚫 Permission denied — not retrying: {error_msg}")
                 rag_context = {
@@ -212,6 +218,8 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
             
         print(f"  → Raw GraphQL Query response: {raw_response}")
         
+        # Step 5: Process Successful Query
+        # Normalize the raw DB JSON into context string for the response generator
         normalized_context = handler.normalize(raw_response, query_plan.primary_table)
         context_string = normalized_context.get("text", str(normalized_context))
         
@@ -222,7 +230,8 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
             "query_description": query_plan.reasoning
         }
         
-        # Success! Clear errors and advance the retry counter
+        # Step 6: Return Standard Success
+        # Clear errors and advance the retry counter
         return {
             "rag_context": rag_context,
             "graphql_error": None,
@@ -234,7 +243,9 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
         error_msg = str(e)
         print(f"  ⚠️ GraphQL execution failed: {error_msg}")
         
-        # If this is a permission error caught at exception level, short-circuit
+        # Step 7: Hard Execution Exception Fallback
+        # If the GraphQL client raises a raw Python exception rather than a soft error,
+        # check for permission issues again to guarantee a consistent short-circuit exit.
         if _is_permission_error(error_msg):
             print(f"  🚫 Permission denied (exception) — not retrying")
             rag_context = {
@@ -251,7 +262,9 @@ def graphql_planning_node(state: GraphState) -> Dict[str, Any]:
                 "previous_graphql_query": graphql_query if 'graphql_query' in locals() else None,
             }
         
-        # Return the error to the state so the graph edge can catch it
+        # Step 8: Trigger Retry for Non-Security Errors
+        # If it was a natural failure (like a syntax error), return the error in state 
+        # so the LangGraph edge catches it and triggers a retry via the LLM.
         return {
             "graphql_error": error_msg,
             "graphql_retries": retries + 1,
