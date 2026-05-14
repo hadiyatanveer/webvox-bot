@@ -1,0 +1,382 @@
+[
+  {
+    "test_case": {
+      "name": "Greeting",
+      "query": "Hello there!",
+      "expected_route": "Greeting",
+      "description": "START \u2192 Intent \u2192 Generate (greeting fast-path)"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 3.005,
+      "median": 3.005,
+      "min": 3.005,
+      "max": 3.005,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 3.0053,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Hey there! I'm WebVox, your voice assistant. Ask me anything about our menu, prices, or policies!",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Vague / Clarification",
+      "query": "I want some food.",
+      "expected_route": "Clarification",
+      "description": "START \u2192 Intent \u2192 Generate (low-confidence clarification)"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 2.778,
+      "median": 2.778,
+      "min": 2.778,
+      "max": 2.778,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 2.7776,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "I understand you want to perform an action, but I'm having trouble understanding exactly what. Could you be more specifi",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Off-topic",
+      "query": "What is the capital of France?",
+      "expected_route": "Clarification",
+      "description": "START \u2192 Intent \u2192 Generate (unknown category)"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 2.899,
+      "median": 2.899,
+      "min": 2.899,
+      "max": 2.899,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 2.8994,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Could you clarify what you want to access? For example: menu items, your orders, or something else?",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Policy Query (Vector)",
+      "query": "What is your kitchen hygiene policy?",
+      "expected_route": "Info / Vector",
+      "description": "START \u2192 Intent \u2192 Vector Search \u2192 Generate"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 6.723,
+      "median": 6.723,
+      "min": 6.723,
+      "max": 6.723,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 6.7233,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Our kitchens are fully certified and we conduct inspections every week to make sure everything stays clean and safe. If ",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Menu Info (GraphQL)",
+      "query": "Show me all available pizzas with their prices.",
+      "expected_route": "Info / GraphQL",
+      "description": "START \u2192 Intent \u2192 Vector \u2192 GraphQL \u2192 Generate"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 24.656,
+      "median": 24.656,
+      "min": 24.656,
+      "max": 24.656,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 24.6564,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Here are all the pizzas we have available right now:  - Margherita Pizza \u2013 $8.99   - Pepperoni Pizza \u2013 $10.99   - BBQ Ch",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Order History",
+      "query": "Show me my recent orders.",
+      "expected_route": "Info / GraphQL",
+      "description": "START \u2192 Intent \u2192 Vector \u2192 GraphQL (user-scoped) \u2192 Generate"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 25.033,
+      "median": 25.033,
+      "min": 25.033,
+      "max": 25.033,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 25.0326,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Webpage navigation is not yet available. Please ask me about specific information instead.",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Specific Item Info",
+      "query": "How many calories does the Margherita pizza have?",
+      "expected_route": "Info / GraphQL",
+      "description": "START \u2192 Intent \u2192 Vector \u2192 GraphQL \u2192 Generate"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 19.556,
+      "median": 19.556,
+      "min": 19.556,
+      "max": 19.556,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 19.5564,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "I\u2019m sorry, but I don\u2019t have the calorie information for the Margherita pizza on hand right now. If you\u2019d like, I can loo",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Place Order (Clarification)",
+      "query": "I want to order a pizza.",
+      "expected_route": "Action Clarification",
+      "description": "START \u2192 Intent \u2192 Action Classifier \u2192 Generate (missing info)"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 10.624,
+      "median": 10.624,
+      "min": 10.624,
+      "max": 10.624,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 10.6237,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Disallowed (no permission to insert into order_items)",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Place Order (Complete)",
+      "query": "Place an order for 2 large Margherita pizzas.",
+      "expected_route": "Action Execution",
+      "description": "START \u2192 Intent \u2192 Action Classifier \u2192 Enrichment \u2192 Mutation \u2192 Generate"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 28.753,
+      "median": 28.753,
+      "min": 28.753,
+      "max": 28.753,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 28.7526,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Disallowed (no permission to insert into order_items)",
+        "error": null
+      }
+    ]
+  },
+  {
+    "test_case": {
+      "name": "Make Reservation",
+      "query": "Book a table for 4 people tomorrow at 7 PM.",
+      "expected_route": "Action Execution",
+      "description": "START \u2192 Intent \u2192 Action Classifier \u2192 Enrichment \u2192 Mutation \u2192 Generate"
+    },
+    "success_rate_pct": 100.0,
+    "e2e_stats": {
+      "mean": 28.14,
+      "median": 28.14,
+      "min": 28.14,
+      "max": 28.14,
+      "stdev": 0.0
+    },
+    "langgraph_stats": {
+      "mean": null,
+      "median": null,
+      "min": null,
+      "max": null,
+      "stdev": null
+    },
+    "actual_routes": [
+      "Unknown"
+    ],
+    "runs": [
+      {
+        "run": 1,
+        "success": true,
+        "e2e_latency": 28.1401,
+        "langgraph_time": null,
+        "wall_time": null,
+        "actual_route": "Unknown",
+        "response_preview": "Disallowed (no permission to insert into reservations)",
+        "error": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,5 @@
+python scripts/evaluate_accuracy.py --delay 1.0
+
+python scripts/evaluate_performance.py --runs 1 --json-out results.json
+
+python scripts/evaluate_reliability.py --delay 1.0
