@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional, List
 from utilities.config_loader import get_config
 from utilities.llm_configure import generate_content
 from utilities.prompt_loader import load_prompt
+from utilities.history_formatter import format_history_for_prompt
 
 
 class ResponseGenerator:
@@ -25,7 +26,8 @@ class ResponseGenerator:
         intent_data: Dict[str, Any],
         retrieval_result: Optional[Dict[str, Any]] = None,
         action_data: Optional[Dict[str, Any]] = None,
-        mutation_result: Optional[Dict[str, Any]] = None
+        mutation_result: Optional[Dict[str, Any]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """
         Generate a response based on intent and retrieved context.
@@ -36,6 +38,7 @@ class ResponseGenerator:
             retrieval_result: Results from information retrieval (if applicable)
             action_data: Data from action intent classification (if applicable)
             mutation_result: Results from database mutation (if applicable)
+            chat_history: Prior conversation turns for contextual responses
             
         Returns:
             Generated response with metadata
@@ -44,10 +47,14 @@ class ResponseGenerator:
         
         # Route to appropriate generator based on intent category
         if category == "information":
-            return self._generate_information_response(user_query, intent_data, retrieval_result)
+            return self._generate_information_response(
+                user_query, intent_data, retrieval_result, chat_history
+            )
         
         elif category == "action":
-            return self._generate_action_response(user_query, action_data, mutation_result)
+            return self._generate_action_response(
+                user_query, action_data, mutation_result, chat_history
+            )
         
         elif category == "webpage":
             return self._generate_webpage_not_supported_response()
@@ -61,18 +68,45 @@ class ResponseGenerator:
         
         else:
             return self._generate_clarification_response(user_query, intent_data)
-    
+
+    # ── Private helpers ───────────────────────────────────────────────────────
+
+    def _build_history_block(
+        self, chat_history: Optional[List[Dict[str, str]]]
+    ) -> str:
+        """
+        Format history for prompt injection, excluding the current user turn
+        (which is already present in {user_query}).
+        """
+        # The current user message is the last entry; exclude it so it isn't
+        # duplicated in the prompt.
+        prior = chat_history[:-1] if chat_history else []
+        return format_history_for_prompt(prior)
+
+    def _load_response_prompt(
+        self,
+        context: str,
+        user_query: str,
+        chat_history: Optional[List[Dict[str, str]]],
+    ) -> str:
+        """Load the response generator prompt with history injected."""
+        return load_prompt("response_generator", "generate_response.prompt.txt", {
+            "context": context,
+            "user_query": user_query,
+            "chat_history_block": self._build_history_block(chat_history),
+        })
+
     def _generate_information_response(
         self,
         user_query: str,
         intent_data: Dict[str, Any],
-        retrieval_result: Optional[Dict[str, Any]]
+        retrieval_result: Optional[Dict[str, Any]],
+        chat_history: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """Generate response for information retrieval intent."""
         
         # Check if retrieval was successful
         if not retrieval_result or retrieval_result.get("status") != "success":
-            # Use fallback or clarification
             if retrieval_result and retrieval_result.get("message"):
                 return {
                     "response": retrieval_result["message"],
@@ -88,10 +122,7 @@ class ResponseGenerator:
             context = f"[Database filter applied: {query_desc}]\n\n{context}"
         print("context given to user:", context)
         
-        prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
-            "context": context,
-            "user_query": user_query,
-        })
+        prompt = self._load_response_prompt(context, user_query, chat_history)
 
         try:
             response_text = self._call_llm(prompt)
@@ -111,7 +142,13 @@ class ResponseGenerator:
                 "error": str(e)
             }
     
-    def _generate_action_response(self, user_query: str, action_data: Optional[Dict[str, Any]], mutation_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _generate_action_response(
+        self,
+        user_query: str,
+        action_data: Optional[Dict[str, Any]],
+        mutation_result: Optional[Dict[str, Any]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None,
+    ) -> Dict[str, Any]:
         """Generate response for action intent, handling errors, missing info, and execution results."""
         if not action_data:
             return {
@@ -125,29 +162,24 @@ class ResponseGenerator:
                 "status": "disallowed"
             }
         
-        # 1. Handle Execution Result (New!)
+        # 1. Handle Execution Result
         if mutation_result:
-            # Use LLM to generate a natural confirmation or error explanation
-            prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
-                "context": f"MUTATION_RESULT: {mutation_result}",
-                "user_query": user_query,
-            })
-            
+            prompt = self._load_response_prompt(
+                f"MUTATION_RESULT: {mutation_result}", user_query, chat_history
+            )
             try:
                 response_text = self._call_llm(prompt)
                 return {
                     "response": response_text,
                     "status": "success" if mutation_result.get("success") else "error"
                 }
-            except Exception as e:
-                # Fallback to hardcoded if LLM fails
+            except Exception:
                 return {
                     "response": "Your request has been processed.",
                     "status": "success"
                 }
 
-        
-        # 3. Handle Missing Information
+        # 2. Handle Missing Information
         missing_info = action_data.get("missing_info", {})
         if not missing_info.get("is_complete", True):
             questions = missing_info.get("clarification_questions", [])
@@ -158,13 +190,12 @@ class ResponseGenerator:
                 "needs_clarification": True
             }
         
-        # 4. Handle Successful Data Collection (Ready to Execute)
-        # Use LLM to generate a natural "Are you sure?" or confirmation of intent
-        prompt = load_prompt("response_generator", "generate_response.prompt.txt", {
-            "context": f"ACTION_DATA: {action_data}\n\nSTATUS: ACTION_READY (Awaiting confirmation)",
-            "user_query": user_query,
-        })
-        
+        # 3. Handle Successful Data Collection (Ready to Execute)
+        prompt = self._load_response_prompt(
+            f"ACTION_DATA: {action_data}\n\nSTATUS: ACTION_READY (Awaiting confirmation)",
+            user_query,
+            chat_history,
+        )
         try:
             response_text = self._call_llm(prompt)
             return {
@@ -173,7 +204,6 @@ class ResponseGenerator:
                 "action_data": action_data
             }
         except Exception:
-            # Absolute fallback
             op = action_data.get("operation", "action")
             return {
                 "response": f"I've noted your request. Would you like me to proceed with the {op}?",
@@ -187,7 +217,6 @@ class ResponseGenerator:
             'response.fallback.webpage_not_supported',
             "Webpage navigation is not yet available. Please ask me about specific information instead."
         )
-        
         return {
             "response": message,
             "status": "not_supported",
@@ -200,15 +229,12 @@ class ResponseGenerator:
         intent_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Generate a clarification request when intent is unclear."""
-        
-        # Check if intent detector already provided clarification questions
         clarification_questions = intent_data.get("clarification_questions", [])
         
         if clarification_questions:
             questions_text = "\n".join(f"• {q}" for q in clarification_questions)
             response = f"I'd like to help you, but I need a bit more information:\n{questions_text}"
         else:
-            # Use default clarification
             response = self.config.get(
                 'clarification.templates.general',
                 "Could you clarify what you want to access? For example: menu items, your orders, or something else?"

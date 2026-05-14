@@ -3,6 +3,8 @@ import json
 from utilities.llm_configure import generate_content
 from utilities.config_loader import get_config
 from utilities.prompt_loader import load_prompt
+from utilities.history_formatter import format_history_for_prompt
+from typing import List, Dict, Optional
 
 
 def clean_json_output(raw_text: str) -> str:
@@ -23,7 +25,12 @@ def clean_json_output(raw_text: str) -> str:
     return ""
 
 
-def detect_intent(user_text: str, rag_context=None, user_role: str = "admin") -> dict:
+def detect_intent(
+    user_text: str,
+    rag_context=None,
+    user_role: str = "admin",
+    chat_history: Optional[List[Dict[str, str]]] = None,
+) -> dict:
     """
     Detect user intent with confidence scoring and entity extraction.
     
@@ -31,6 +38,7 @@ def detect_intent(user_text: str, rag_context=None, user_role: str = "admin") ->
         user_text: The user's voice command text
         rag_context: Optional RAG context for better intent detection
         user_role: User role for authorization checks
+        chat_history: Prior conversation turns for coreference resolution
         
     Returns:
         Dictionary containing intent classification, confidence, entities, and clarification info
@@ -44,10 +52,17 @@ def detect_intent(user_text: str, rag_context=None, user_role: str = "admin") ->
             [f"- {r.get('text', str(r))}" for r in rag_context]
         )
 
+    # Format conversation history for the prompt
+    # We exclude the very last message (the current user turn) since it is
+    # already in {user_text} — so we pass history[:-1].
+    history_for_prompt = chat_history[:-1] if chat_history else []
+    chat_history_block = format_history_for_prompt(history_for_prompt)
+
     prompt = load_prompt("intent_detector", "classify_intent.prompt.txt", {
         "user_role": user_role,
         "user_text": user_text,
         "context_snippet": context_snippet,
+        "chat_history_block": chat_history_block,
     })
 
     response = generate_content(prompt)
