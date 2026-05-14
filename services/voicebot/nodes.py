@@ -305,26 +305,25 @@ def mutation_execution_node(state: GraphState) -> Dict[str, Any]:
         return {"error": str(e)}
     
 def generate_response_node(state: GraphState) -> Dict[str, Any]:
-    """Synthesizes the final voice response."""
-    print(f"---NODE: GENERATE RESPONSE--- (Result in state: {'mutation_result' in state})")
-    if 'mutation_result' in state:
-        print(f"  → Mutation Success: {state['mutation_result'].get('success')}")
-    
     generator = get_response_generator()
     
-    # Generate the conversational reply using your existing generator
     result = generator.generate(
         user_query=state["user_input"],
         intent_data=state["intent_data"],
         retrieval_result=state.get("rag_context"),
-        action_data=state.get("action_data"),
+        action_data=state.get("action_data"),       # reads from current state — unaffected
         mutation_result=state.get("mutation_result")
     )
     
-    # If a mutation was successful, we should clear the pending action state
-    # so the next turn starts fresh.
     updates = {"final_response": result.get("response", "I'm sorry, I encountered an error.")}
+
+    # Clear action_data from persisted state after terminal conditions,
+    # so the next turn's route_at_start doesn't re-enter the action flow.
+    action_data = state.get("action_data")
+    if action_data and action_data.get("error"):
+        updates["action_data"] = None  # only affects checkpointed state for next turn
+
     if state.get("mutation_result") and state["mutation_result"].get("success"):
-        updates["action_data"] = None  # Clear the form
-        
+        updates["action_data"] = None  # same pattern already in your code
+
     return updates

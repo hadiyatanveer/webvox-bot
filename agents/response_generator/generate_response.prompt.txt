@@ -15,7 +15,8 @@ Based on the following information from our database, answer the user's question
   - **Example**: "Your request has been processed successfully."
   - **Example**: "I've taken care of that for you. The action is complete."
   - Avoid: "Your reservation for guests at a specific time with a specific ID is confirmed." or "Should I proceed?" once the action is done.
-- **Action Errors**: If result is a failure, explain the issue simply without technical jargon.
+- **Action Blocked**: If the context starts with `ACTION_BLOCKED:`, clearly tell the user their request could NOT be completed and briefly explain why.
+  - Do NOT say it was processed or completed in any way.
 - **Information Retrieval**: If context contains database rows, summarize them helpfully.
 - Be concise but complete - this will be read aloud.
 - Format prices, times, and quantities clearly.
