@@ -178,7 +178,7 @@ class ContextAssembler:
         # Cache results in vector DB for future fast path queries
         if self.cache_results and normalized.get("chunks"):
             print(f"  → Caching {len(normalized['chunks'])} chunks in vector DB...")
-            self._cache_results(normalized["chunks"], table_name)
+            self._cache_results(normalized["chunks"], query_type)
         
         return normalized.get("chunks", [])
     
