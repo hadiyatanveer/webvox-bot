@@ -12,9 +12,7 @@ run:
 	python3 -m backend.main
 
 frontend:
-	npm install
-	npm install react-scripts@5.0.1
-	npm start
+	cd frontend && npm install && npm start
 
 clean:
 	find . -name "__pycache__" -type d -exec rm -r {} +
