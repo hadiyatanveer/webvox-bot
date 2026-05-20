@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="WebVox — The voice-first way to use your website" width="100%"/>
+  <img src="assets/banner2.png" alt="WebVox — The voice-first way to use your website" width="100%"/>
 </p>
 
 <p align="center">
