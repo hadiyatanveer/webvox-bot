@@ -1,3 +1,17 @@
+<p align="center">
+  <img src="assets/banner.png" alt="WebVox — The voice-first way to use your website" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/>
+  <img src="https://img.shields.io/badge/LangChain-0.3+-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white" alt="LangChain"/>
+  <img src="https://img.shields.io/badge/Groq-LLaMA_4-F55036?style=for-the-badge&logo=groq&logoColor=white" alt="Groq"/>
+</p>
+
+<br/>
+
 # WebVox — Intelligent Voice-Driven Chatbot Framework
 
 WebVox is an open-source, API-first framework for building intelligent voice and text chatbots that integrate large language models (LLMs) with both structured (relational/GraphQL) and unstructured (document/PDF) data retrieval. Unlike rigid, all-in-one chatbot products, WebVox is designed to be embedded into existing websites and applications via its API layer — giving development teams full control over behavior, data sources, and deployment.
@@ -66,6 +80,12 @@ The system is built around a **Retrieval-Augmented Generation (RAG)** pipeline: 
 
 ## Architecture
 
+<p align="center">
+  <img src="voicebot_graph.png" alt="WebVox LangGraph Agent Flow" width="85%"/>
+  <br/>
+  <em>LangGraph agent flow — from voice input through intent detection, RAG retrieval, and LLM response generation.</em>
+</p>
+
 ```
 User (Voice / Text)
         │
@@ -133,6 +153,7 @@ User (Voice / Text)
 ```
 webvox-bot/
 │
+├── assets/                 # Static assets (banner image, etc.)
 ├── frontend/               # React web client (voice + text UI)
 │
 ├── backend/                # FastAPI application entry point
