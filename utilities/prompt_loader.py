@@ -4,12 +4,23 @@ Loads LLM prompt templates from the agents/ folder and substitutes variables.
 """
 
 import os
+import re
+from string import Template
 from typing import Dict, Any, Optional
 
 
 # Project root is 1 level above the utilities/ directory
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _AGENTS_DIR = os.path.join(_PROJECT_ROOT, "agents")
+
+
+class _SafeTemplate(Template):
+    """
+    A Template subclass that uses $variable / ${variable} delimiters.
+    Completely immune to curly-brace content in variable values because
+    $ is the delimiter — { and } in substituted values are never re-parsed.
+    """
+    delimiter = "$"
 
 
 def load_prompt(
@@ -19,7 +30,12 @@ def load_prompt(
 ) -> str:
     """
     Load a prompt template from agents/<agent_name>/<prompt_file>
-    and substitute variables using Python's str.format_map().
+    and substitute variables.
+
+    Template syntax: use {variable_name} in prompt files (converted internally
+    to ${variable_name} for safe substitution). Curly braces that appear inside
+    variable *values* (e.g. a user query like "What's in {the} pizza?") are
+    passed through verbatim without causing KeyError or mis-substitution.
 
     Args:
         agent_name: Name of the agent folder (e.g., "intent_detector")
@@ -41,10 +57,24 @@ def load_prompt(
 
     # ALWAYS read fresh from disk (no caching)
     with open(prompt_path, "r", encoding="utf-8") as f:
-        template = f.read()
+        template_text = f.read()
 
-    # Substitute variables if provided
-    if variables:
-        return template.format_map(variables)
+    if not variables:
+        return template_text
 
-    return template
+    # Convert {variable} placeholders in the template to ${variable} so we can
+    # use string.Template, which never re-parses substituted values.
+    # Only convert tokens that match a key in `variables` to avoid touching
+    # intentional curly braces in the prompt body (e.g. JSON examples).
+    def _replace_placeholder(match: re.Match) -> str:
+        name = match.group(1)
+        if name in variables:
+            return f"${{{name}}}"   # {foo} -> ${foo}
+        # Not a known variable — leave the original {name} intact
+        return match.group(0)
+
+    converted = re.sub(r"\{(\w+)\}", _replace_placeholder, template_text)
+
+    # Substitute using Template — values are never re-scanned for $ or {}
+    safe_vars = {k: str(v) for k, v in variables.items()}
+    return _SafeTemplate(converted).substitute(safe_vars)
