@@ -295,18 +295,14 @@ class HasuraClient(GraphQLClientBase):
         
         self._HEADERS = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.jwt_token or ''}", 
-            "X-Hasura-Role": self.role
+            "X-Hasura-Role": self.role,
         }
 
-        
-        # Add appropriate auth header
+        # Add appropriate auth header — only one credential path should be active
         if self.jwt_token:
             self._HEADERS["Authorization"] = f"Bearer {self.jwt_token}"
         elif self.admin_secret:
             self._HEADERS["X-Hasura-Admin-Secret"] = self.admin_secret
-            # When using admin secret, we might not need the role header, or it might override permission checks
-            # But keeping it allows testing role-based permissions if the secret allows it
         else:
             print("⚠️ No authentication credentials found for Hasura Client")
 
