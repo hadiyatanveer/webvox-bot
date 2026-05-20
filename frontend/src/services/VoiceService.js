@@ -1,8 +1,9 @@
 // src/services/VoiceService.js
 class VoiceService {
   constructor() {
-    // Single unified backend URL
-    this.apiUrl = 'http://localhost:8000'; 
+    // Read from environment variable so deployments outside localhost work.
+    // Falls back to localhost:8000 for local development.
+    this.apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
     this.sessionId = this.generateSessionId();
   }
 
