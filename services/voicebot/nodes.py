@@ -30,9 +30,10 @@ def detect_intent_node(state: GraphState) -> Dict[str, Any]:
     """Analyzes the user's intent and extracts entities."""
     print("---NODE: DETECT INTENT---")
     user_input = state["user_input"]
-    
-    # Call your existing intent detector
-    intent_data = detect_intent(user_input)
+    chat_history = state.get("chat_history", [])
+
+    # Pass chat_history so the LLM can resolve coreferences across turns
+    intent_data = detect_intent(user_input, chat_history=chat_history)
     
     # Check if the intent was too vague
     needs_clarification = intent_data.get("needs_clarification", False)
@@ -46,19 +47,21 @@ def action_intent_classifier_node(state: GraphState) -> Dict[str, Any]:
     """Refines action-category intents and enforces safety rules."""
     print("---NODE: ACTION INTENT CLASSIFIER---")
     user_input = state["user_input"]
-    intent_data = state["intent_data"]
-    
+    intent_data = state.get("intent_data") or {}
+    chat_history = state.get("chat_history", [])
+
     classifier = get_action_intent_classifier()
     
     # Extract entities from the main intent detector to pass as context
     detected_entities = intent_data.get("entities", {})
     
     # Classify the specific action (insert/update/delete) and table/columns
-    # Pass existing action_data to handle iterative turns
+    # Pass existing action_data and chat_history to handle iterative turns
     action_intent = classifier.classify_action(
-        user_input, 
-        detected_entities, 
-        previous_action_data=state.get("action_data")
+        user_input,
+        detected_entities,
+        previous_action_data=state.get("action_data"),
+        chat_history=chat_history,
     )
     
     # Convert dataclass to dict for LangGraph state
@@ -309,10 +312,11 @@ def generate_response_node(state: GraphState) -> Dict[str, Any]:
     
     result = generator.generate(
         user_query=state["user_input"],
-        intent_data=state["intent_data"],
+        intent_data=state.get("intent_data") or {},
         retrieval_result=state.get("rag_context"),
-        action_data=state.get("action_data"),       # reads from current state — unaffected
-        mutation_result=state.get("mutation_result")
+        action_data=state.get("action_data"),
+        mutation_result=state.get("mutation_result"),
+        chat_history=state.get("chat_history", []),
     )
     
     updates = {"final_response": result.get("response", "I'm sorry, I encountered an error.")}

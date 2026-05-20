@@ -96,8 +96,7 @@ def detect_intent(
         result.setdefault("entities", {})
         result.setdefault("needs_clarification", False)
         result.setdefault("clarification_questions", [])
-        # result.setdefault("authorized", True)
-        result["authorized"] = True  # Force True for testing (was setdefault)
+        result.setdefault("authorized", True)
         
         return result
         

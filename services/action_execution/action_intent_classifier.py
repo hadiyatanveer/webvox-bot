@@ -44,12 +44,15 @@ class ActionIntentClassifier:
         self,
         user_query: str,
         detected_entities: Optional[Dict[str, Any]] = None,
-        previous_action_data: Optional[Dict[str, Any]] = None
+        previous_action_data: Optional[Dict[str, Any]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None,
     ) -> ActionIntent:
         """
         Refine an 'action' request into a specific operation and table.
         Incorporates previous state to handle iterative form filling.
         """
+        from utilities.history_formatter import format_history_for_prompt
+
         detected_entities = detected_entities or {}
         previous_action_data = previous_action_data or {}
         
@@ -58,13 +61,18 @@ class ActionIntentClassifier:
         
         # Format the previous state for the LLM context
         previous_state_str = json.dumps(previous_action_data, indent=2) if previous_action_data else "None"
+
+        # Format conversation history (exclude the current user turn which is in user_query)
+        history_for_prompt = chat_history[:-1] if chat_history else []
+        chat_history_block = format_history_for_prompt(history_for_prompt)
         
         # Prepare prompt
         prompt = load_prompt("action_intent_classifier", "classify_action.prompt.txt", {
             "schema_context": schema_context,
             "user_query": user_query,
             "detected_entities": json.dumps(detected_entities, indent=2),
-            "previous_state": previous_state_str
+            "previous_state": previous_state_str,
+            "chat_history_block": chat_history_block,
         })
         
         try:
