@@ -145,8 +145,9 @@
 
   // Optional: postMessage communication (if you want future interaction)
   window.addEventListener("message", (event) => {
-    // Only allow messages from your React app origin
-    if (!event.origin.includes("localhost:3000")) return;
+    // Only allow messages from the exact configured chatbot origin
+    const allowedOrigin = new URL(chatbotURL).origin;
+    if (event.origin !== allowedOrigin) return;
 
     if (event.data === "close-widget") {
       iframeContainer.style.display = "none";
