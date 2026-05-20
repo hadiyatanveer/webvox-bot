@@ -341,30 +341,70 @@ class VectorStore:
         return removed_count
     
     def _rebuild_index_without_expired(self, source: str) -> int:
-        """Rebuild an index excluding expired chunks."""
+        """
+        Rebuild an index excluding expired chunks.
+        Re-embeds all valid chunks and writes a fresh FAISS index to disk.
+        """
         if source == "static_kb":
-            metadata = self._static_metadata
+            old_metadata = self._static_metadata
         else:
-            metadata = self._dynamic_metadata
-        
-        # Filter out expired
+            old_metadata = self._dynamic_metadata
+
+        # Separate valid from expired entries
         valid_entries = []
         removed_count = 0
-        
-        for idx, meta in list(metadata.items()):
+
+        for meta in old_metadata.values():
             timestamp = datetime.fromisoformat(meta["timestamp"])
             ttl_days = meta["ttl_days"]
-            
+
             from datetime import timedelta
             if datetime.now() > timestamp + timedelta(days=ttl_days):
                 removed_count += 1
             else:
                 valid_entries.append(meta)
-        
-        # Rebuild index with valid entries (would need original embeddings)
-        # For now, just clear expired metadata
-        # Full rebuild would require re-embedding texts
-        
+
+        if removed_count == 0:
+            return 0  # Nothing to do
+
+        # Short-circuit: if every chunk expired, swap in a blank index and return
+        if not valid_entries:
+            new_index = self._create_index()
+            if source == "static_kb":
+                self._static_index = new_index
+                self._static_metadata = {}
+            else:
+                self._dynamic_index = new_index
+                self._dynamic_metadata = {}
+            self._save_indexes()
+            print(f"  ♻️ All {removed_count} chunks in {source} expired — index cleared")
+            return removed_count
+
+        # Build a fresh index from the surviving entries
+        new_index = self._create_index()
+        new_metadata: Dict[int, Dict] = {}
+
+        if new_index is not None and valid_entries:
+            embedding_service = get_embedding_service()
+            texts = [m["text"] for m in valid_entries]
+            embeddings = np.array(
+                [embedding_service.embed_text(t) for t in texts], dtype=np.float32
+            )
+            faiss.normalize_L2(embeddings)
+            new_index.add(embeddings)
+            for i, meta in enumerate(valid_entries):
+                new_metadata[i] = meta
+
+        # Swap in the rebuilt index
+        if source == "static_kb":
+            self._static_index = new_index
+            self._static_metadata = new_metadata
+        else:
+            self._dynamic_index = new_index
+            self._dynamic_metadata = new_metadata
+
+        self._save_indexes()
+        print(f"  ♻️ Rebuilt {source} index: removed {removed_count} expired chunks, kept {len(valid_entries)}")
         return removed_count
     
     def clear_index(self, source: Optional[str] = None) -> None:
