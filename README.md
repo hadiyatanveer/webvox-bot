@@ -81,7 +81,7 @@ The system is built around a **Retrieval-Augmented Generation (RAG)** pipeline: 
 ## Architecture
 
 <p align="center">
-  <img src="voicebot_graph.png" alt="WebVox LangGraph Agent Flow" width="85%"/>
+  <img src="assets/flow.png" alt="WebVox LangGraph Agent Flow" width="85%"/>
   <br/>
   <em>LangGraph agent flow — from voice input through intent detection, RAG retrieval, and LLM response generation.</em>
 </p>
